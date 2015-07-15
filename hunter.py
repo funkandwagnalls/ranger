@@ -2,7 +2,7 @@
 '''
 Author: Christopher Duffy
 Date: March 2015
-Name: msfrpc_smb.py
+Name: hunter.py
 Purpose: To scan a network for a smb ports and validate if credentials work on the target host
 '''
 import os, argparse, sys, time
