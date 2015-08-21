@@ -27,27 +27,12 @@ COMMENT
 
 # Installing PIP
 #apt-get clean && apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y # Uncomment if necessary
-apt-get -y install python-setuptools python-dev python-pip
+apt-get -y install python-setuptools python-dev python-pip wmi-client wmi_client_wrapper
 
 # Install Python libraries
 pip install netifaces python-nmap scapy msgpack-python twill xlsxwriter
 # Upgrade requests
 pip install request --upgrade
-
-# Clone MSFRPC
-cd /opt
-git clone https://github.com/SpiderLabs/msfrpc.git
-
-# Install Perl interface for MSFRPC
-cd /opt/msfrpc/Net-MSFRPC
-perl Makefile.PL
-make
-make install
-
-# Install Python interface for MSFRPC
-cd /opt/msfrpc/python-msfrpc
-python ./setup.py build
-python ./setup.py install
 
 cd ~
 wget https://pypi.python.org/packages/source/i/impacket/impacket-0.9.13.tar.gz
