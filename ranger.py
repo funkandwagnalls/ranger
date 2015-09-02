@@ -365,7 +365,7 @@ Create Pasteable Double Encoded Script:
     sam_dump_options.add_argument("--ntds", action="store", help="The NTDS.DIT file to parse")
     obfiscation.add_argument("--encoder", action="store_true", help="Set to encode the commands that are being executed")
     logging_details.add_argument("-l", "--logfile", action="store", dest="log", default="results.log", type=str, help="The log file to output the results")
-    logging_details.add_argument("--debugging", action="store_true", dest="debug", default=False, help="Increases the logging output to DEBUG level")
+    logging_details.add_argument("--debug", action="store_true", dest="debug", default=False, help="Increases the logging output to DEBUG level")
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument('--version', action='version', version='%(prog)s 0.42b')
