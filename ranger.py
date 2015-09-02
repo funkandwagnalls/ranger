@@ -28,7 +28,7 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
-import base64, sys, argparse, re, subprocess, os, time
+import base64, sys, argparse, re, subprocess, os, time, logging
 
 try:
     import netifaces
@@ -360,6 +360,7 @@ Create Pasteable Double Encoded Script:
     sam_dump_options.add_argument("--sam", action="store", help="The SAM hive to parse")
     sam_dump_options.add_argument("--ntds", action="store", help="The NTDS.DIT file to parse")
     obfiscation.add_argument("--encoder", action="store_true", help="Set to encode the commands that are being executed")
+    parser.add_argument("-l", "--logfile", action="store", dest="log", default="results.log", type=str, help="The log file to output the results")
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument('--version', action='version', version='%(prog)s 0.42b')
@@ -373,6 +374,14 @@ Create Pasteable Double Encoded Script:
     # Set Constructors
     verbose = args.verbose             # Verbosity level
     src_port = args.src_port           # Port to source the Mimikatz script on
+    log = args.log
+    if ".log" not in log:
+        log = log + ".log"
+    level = logging.DEBUG                                                                             # Logging level
+    format = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s") # Log format
+    logger_obj = logging.getLogger()                                                                  # Getter for logging agent
+    file_handler = logging.FileHandler(args.log)                                                      # File Handler
+    #stderr_handler = logging.StreamHandler()                                                          # STDERR Handler
     src_ip = args.src_ip               # IP to source the Mimikatz script on
     payload = args.payload             # The name of the payload that will be used
     interface = args.interface         # The interface to grab the IP from
@@ -424,6 +433,15 @@ Create Pasteable Double Encoded Script:
     method_dict = {}
     dst = ""
     test = ""
+
+    # Configure logger formats for STDERR and output file
+    file_handler.setFormatter(format)
+    #stderr_handler.setFormatter(format)
+
+    # Configure logger object
+    logger_obj.addHandler(file_handler)
+    #logger_obj.addHandler(stderr_handler)
+    logger_obj.setLevel(level)
 
     # Get details for catapult server
     cwd = str(os.path.dirname(payload))
