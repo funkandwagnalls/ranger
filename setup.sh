@@ -30,7 +30,7 @@ COMMENT
 apt-get -y install python-setuptools python-dev python-pip wmi-client
 
 # Install Python libraries
-pip install netifaces python-nmap scapy msgpack-python twill xlsxwriter wmi_client_wrapper
+pip install netifaces python-nmap wmi_client_wrapper
 # Upgrade requests
 pip install request --upgrade
 
