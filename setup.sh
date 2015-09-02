@@ -27,10 +27,10 @@ COMMENT
 
 # Installing PIP
 #apt-get clean && apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y # Uncomment if necessary
-apt-get -y install python-setuptools python-dev python-pip wmi-client wmi_client_wrapper
+apt-get -y install python-setuptools python-dev python-pip wmi-client
 
 # Install Python libraries
-pip install netifaces python-nmap scapy msgpack-python twill xlsxwriter
+pip install netifaces python-nmap scapy msgpack-python twill xlsxwriter wmi_client_wrapper
 # Upgrade requests
 pip install request --upgrade
 
