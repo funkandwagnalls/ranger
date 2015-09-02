@@ -291,7 +291,10 @@ def http_server(port, working_dir):
 def wmi_test(usr, pwd, dom, dst):
     output = None
     dom_usr = dom + "/" + usr
-    wmic = wmi.WmiClientWrapper(username=dom_usr,password=pwd,host=dst)
+    if dom.lower() == "workgroup":
+        wmic = wmi.WmiClientWrapper(username=usr,password=pwd,host=dst)
+    else:
+        wmic = wmi.WmiClientWrapper(username=dom_usr,password=pwd,host=dst)
     try:
         output = wmic.query("SELECT * FROM Win32_Processor")
     except:
@@ -324,6 +327,7 @@ Create Pasteable Double Encoded Script:
     method = group1.add_mutually_exclusive_group()
     attack = group2.add_mutually_exclusive_group()
     sam_dump_options = group3.add_mutually_exclusive_group()
+    logging_details = parser.add_argument_group('Logging Details')
     iex_options.add_argument("-i", action="store", dest="src_ip", default=None, help="Set the IP address of the Mimkatz server, defaults to eth0 IP")
     iex_options.add_argument("-n", action="store", dest="interface", default="eth0", help="Instead of setting the IP you can extract it by interface, default eth0")
     iex_options.add_argument("-p", action="store", dest="src_port", default="8000", help="Set the port the Mimikatz server is on, defaults to port 8000")
@@ -360,7 +364,8 @@ Create Pasteable Double Encoded Script:
     sam_dump_options.add_argument("--sam", action="store", help="The SAM hive to parse")
     sam_dump_options.add_argument("--ntds", action="store", help="The NTDS.DIT file to parse")
     obfiscation.add_argument("--encoder", action="store_true", help="Set to encode the commands that are being executed")
-    parser.add_argument("-l", "--logfile", action="store", dest="log", default="results.log", type=str, help="The log file to output the results")
+    logging_details.add_argument("-l", "--logfile", action="store", dest="log", default="results.log", type=str, help="The log file to output the results")
+    logging_details.add_argument("--debugging", action="store_true", dest="debug", default=False, help="Increases the logging output to DEBUG level")
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument('--version', action='version', version='%(prog)s 0.42b')
@@ -375,9 +380,13 @@ Create Pasteable Double Encoded Script:
     verbose = args.verbose             # Verbosity level
     src_port = args.src_port           # Port to source the Mimikatz script on
     log = args.log
+    debug = args.debug
     if ".log" not in log:
         log = log + ".log"
-    level = logging.DEBUG                                                                             # Logging level
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
     format = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s") # Log format
     logger_obj = logging.getLogger()                                                                  # Getter for logging agent
     file_handler = logging.FileHandler(args.log)                                                      # File Handler
