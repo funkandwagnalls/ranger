@@ -554,6 +554,8 @@ Create Pasteable Double Encoded Script:
         command, unprotected_command = x.return_command()
     elif netview_cmd:
         attacks = True
+    elif sam_dump:
+        attacks = True
     else:
         attacks = False
 
