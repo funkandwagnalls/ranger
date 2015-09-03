@@ -655,7 +655,7 @@ Create Pasteable Double Encoded Script:
                 if hash:
                     test = True
                 else:
-                    test = wmi_test(usr, pwd, dom, dst, hash)
+                    test = wmi_test(usr, pwd, dom, dst)
                 if test:
                     try:
                         attack=wmiexec.WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
