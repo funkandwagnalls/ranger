@@ -607,7 +607,7 @@ Create Pasteable Double Encoded Script:
 
     if methods and sam_dump:
         sys.exit("[!] You do not execute the --secrets-dump with a method, it should be executed on its own.")
-    if not final_targets:
+    if not final_targets and not execution:
         sys.exit("[!] No targets to exploit")
     if psexec_cmd:
         for dst in final_targets:
