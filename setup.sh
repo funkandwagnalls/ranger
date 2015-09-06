@@ -41,8 +41,8 @@ cd impacket && python setup.py install
 rm ~/impacket-0.9.13.tar.gz
 cd examples && https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
 
-mkdir /opt/ranger/smb
-mkdir /opt/ranger/web
+mkdir -p /opt/ranger/smb
+mkdir -p /opt/ranger/web
 cd /opt/ranger
 chmod 705 smb
 chmod 705 web
