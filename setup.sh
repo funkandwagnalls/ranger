@@ -40,3 +40,13 @@ tar -xzvf impacket-0.9.13.tar.gz && mv impacket-0.9.13 impacket
 cd impacket && python setup.py install
 rm ~/impacket-0.9.13.tar.gz
 cd examples && https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
+
+mkdir /opt/ranger/smb
+mkdir /opt/ranger/web
+cd /opt/ranger
+chmod 705 smb
+chmod 705 web
+cd web
+wget https://raw.githubusercontent.com/PowerShellEmpire/PowerTools/master/PowerView/powerview.ps1 pv.ps1
+wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 im.ps1
+chmod a+x pv.ps1 im.ps1
