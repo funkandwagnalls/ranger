@@ -29,6 +29,9 @@ COMMENT
 #apt-get clean && apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y # Uncomment if necessary
 apt-get -y install python-setuptools python-dev python-pip wmi-client
 
+# Update setup tools
+pip install setuptools --upgrade
+
 # Install Python libraries
 pip install netifaces python-nmap wmi_client_wrapper
 # Upgrade requests
