@@ -34,6 +34,7 @@ pip install setuptools --upgrade
 
 # Install Python libraries
 pip install netifaces python-nmap wmi-client-wrapper
+
 # Upgrade requests
 pip install request --upgrade
 
