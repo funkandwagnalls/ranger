@@ -40,10 +40,14 @@ tar -xzvf impacket-0.9.13.tar.gz && mv impacket-0.9.13 impacket
 cd impacket && python setup.py install
 rm ~/impacket-0.9.13.tar.gz
 touch ~/impacket/examples/ranger.py && rm ~/impacket/examples/ranger.py
-cd examples && https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
+cd examples && wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
 
 mkdir -p /opt/ranger/smb
 mkdir -p /opt/ranger/web
+touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
+touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
+touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
+touch /opt/ranger/smb/im.ps1 && rm /opt/ranger/smb/im.ps1
 cd /opt/ranger
 chmod 705 smb
 chmod 705 web
@@ -51,3 +55,4 @@ cd web
 wget https://raw.githubusercontent.com/PowerShellEmpire/PowerTools/master/PowerView/powerview.ps1 -O pv.ps1
 wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 -O im.ps1
 chmod a+x pv.ps1 im.ps1
+cp -p pv.ps1 im.ps1 /opt/ranger/smb/
