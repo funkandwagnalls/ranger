@@ -27,13 +27,13 @@ COMMENT
 
 # Installing PIP
 #apt-get clean && apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y # Uncomment if necessary
-apt-get -y install python-setuptools python-dev python-pip wmi-client
+apt-get -y install python-setuptools python-dev python-pip
 
 # Update setup tools
 pip install setuptools --upgrade
 
 # Install Python libraries
-pip install netifaces python-nmap wmi-client-wrapper
+pip install netifaces python-nmap
 
 # Upgrade requests
 pip install request --upgrade
