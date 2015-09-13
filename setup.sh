@@ -34,17 +34,13 @@ pip install setuptools --upgrade
 
 # Install Python libraries
 pip install netifaces python-nmap
-
 # Upgrade requests
 pip install request --upgrade
 
-cd ~
-wget https://pypi.python.org/packages/source/i/impacket/impacket-0.9.13.tar.gz
-tar -xzvf impacket-0.9.13.tar.gz && mv impacket-0.9.13 impacket
-cd impacket && python setup.py install
-rm ~/impacket-0.9.13.tar.gz
-touch ~/impacket/examples/ranger.py && rm ~/impacket/examples/ranger.py
-cd examples && wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
+touch /usr/bin/ranger && rm /usr/bin/ranger
+touch /usr/share/doc/python-impacket-doc/examples/ranger.py && rm /usr/share/doc/python-impacket-doc/examples/ranger.py
+cd /usr/share/doc/python-impacket-doc/examples/ && wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
+ln -s /usr/share/doc/python-impacket-doc/examples/ranger.py /usr/bin/ranger
 
 mkdir -p /opt/ranger/smb
 mkdir -p /opt/ranger/web
