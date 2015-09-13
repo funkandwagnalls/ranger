@@ -52,7 +52,7 @@ wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltr
 chmod a+x pv.ps1 im.ps1
 cp -p pv.ps1 im.ps1 /opt/ranger/smb/
 
-touch /opt/ranger/impacket && rmdir /opt/ranger/impacket
+touch /opt/ranger/impacket && rm -rf /opt/ranger/impacket
 
 cd /opt/ranger && wget https://pypi.python.org/packages/source/i/impacket/impacket-0.9.13.tar.gz &&  tar -xzvf impacket-0.9.13.tar.gz
 rm  tar -xzvf impacket-0.9.13.tar.gz && mv mv impacket-0.9.13 impacket
