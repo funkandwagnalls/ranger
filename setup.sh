@@ -59,3 +59,4 @@ rm -f impacket-0.9.13.tar.gz && mv impacket-0.9.13 impacket
 cd /opt/ranger/impacket/examples && wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py && chmod a+x ranger.py
 ln -s /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
 rm -f /opt/ranger/setup.sh
+rm -rf /opt/ranger/build
