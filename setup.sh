@@ -37,6 +37,7 @@ pip install netifaces python-nmap
 # Upgrade requests
 pip install request --upgrade
 
+rm -rf /opt/ranger
 mkdir -p /opt/ranger/smb
 mkdir -p /opt/ranger/web
 mkdir -p /opt/ranger/log
@@ -62,3 +63,4 @@ cd /opt/ranger/impacket/examples && wget https://raw.githubusercontent.com/funka
 ln -s /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
 rm -f /opt/ranger/setup.sh
 rm -rf /opt/ranger/build
+chmod -R 777 /opt/ranger
