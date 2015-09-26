@@ -55,6 +55,7 @@ wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltr
 chmod a+x pv.ps1 im.ps1
 cp -p pv.ps1 im.ps1 /opt/ranger/smb/
 touch /usr/bin/ranger && rm -f /usr/bin/ranger
+touch /usr/share/doc/python-impacket-doc/examples/ranger.py && rm -f /usr/share/doc/python-impacket-doc/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /usr/share/doc/python-impacket-doc/examples/ranger.py && chmod a+x /usr/share/doc/python-impacket-doc/examples/ranger.py
 ln -s /usr/share/doc/python-impacket-doc/examples/ranger.py /usr/bin/ranger
 chmod -R 777 /opt/ranger
