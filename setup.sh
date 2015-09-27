@@ -41,7 +41,9 @@ rm -rf /opt/ranger
 mkdir -p /opt/ranger/smb
 mkdir -p /opt/ranger/web
 mkdir -p /opt/ranger/log
-mkdir -p /opt/ranger/results
+mkdir -p /opt/ranger/results/secrets_dump
+mkdir -p /opt/ranger/results/invoker
+mkdir -p /opt/ranger/results/groups
 touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
 touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
 touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
