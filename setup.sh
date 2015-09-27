@@ -44,8 +44,9 @@ mkdir -p /opt/ranger/log
 mkdir -p /opt/ranger/results/secrets_dump
 mkdir -p /opt/ranger/results/invoker
 mkdir -p /opt/ranger/results/groups
-mkdir -p /opt/ranger/results/command
 mkdir -p /opt/ranger/results/logged_in_users
+mkdir -p /opt/ranger/results/command
+mkdir -p /opt/ranger/results/downloader
 touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
 touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
 touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
