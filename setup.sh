@@ -37,6 +37,7 @@ pip install netifaces python-nmap
 # Upgrade requests
 pip install request --upgrade
 
+touch /usr/bin/ranger && rm -f /usr/bin/ranger
 rm -rf /opt/ranger
 mkdir -p /opt/ranger/smb
 mkdir -p /opt/ranger/web
@@ -64,7 +65,6 @@ tar -zxvf impacket.tar.gz
 rm -rf impacket.tar.gz
 mv impacket-0.9.13 impacket
 rm -rf /opt/ranger/build
-touch /usr/bin/ranger && rm -f /usr/bin/ranger
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /opt/ranger/impacket/examples/ranger.py && chmod a+x /opt/ranger/impacket/examples/ranger.py
 ln -sfT /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
