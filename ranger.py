@@ -4134,7 +4134,7 @@ Create Pasteable Executor Attack:
         powershell = True
 
     if atexec_cmd and powershell and encoder:
-        sys.exit("[!] atexec can not interpret encoded commands, use the --no-encoder flag, be aware this will get caught by IPS")
+        sys.exit("[!] atexec can not interpret encoded commands, use the --no-encoder flag, be aware this may get caught by IPS")
 
     if smbexec_cmd and powershell:
         sys.exit("[!] Impacket's smbexec does no function appropriately with PowerShell at this time")
