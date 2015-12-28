@@ -3850,6 +3850,11 @@ def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, s
     else:
         print(instructions)   
 
+# Hard Kill Control for Processes
+def signal_handler(signum, frame):
+    print("[!] Signal handler called with signal: %s") % (signum)
+    sys.exit(0)
+
 def main():
     # If script is executed at the CLI
     usage = '''
@@ -3970,6 +3975,9 @@ Create Pasteable Executor Attack:
             os.system("/root/setup.sh && rm /root/setup.sh")
         except Exception, e:
             print("[!] An error occurred when executing the installation script: %s") % (e)
+
+    # Handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Set Constructors
     verbose = args.verbose             # Verbosity level
@@ -4511,19 +4519,23 @@ Create Pasteable Executor Attack:
                 srv.terminate()
                 print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
     else:
-        if creds_dict:
-            for key, value in creds_dict.iteritems():
-                SID = value[0]
-                LM = value[1]
-                NTLM = value[2]
-                hash = value[3]
-                usr = value[4]
-                pwd = value[5]
-                dom = value[6]
+        try:
+            if creds_dict:
+                for key, value in creds_dict.iteritems():
+                    SID = value[0]
+                    LM = value[1]
+                    NTLM = value[2]
+                    hash = value[3]
+                    usr = value[4]
+                    pwd = value[5]
+                    dom = value[6]
+                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+            else: 
                 method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
-        else: 
-            method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+        except (Exception, KeyboardInterrupt), e:
+            print("[!] An error occurred: %s") % (e)
 
+    signal.pause()
 
 if __name__ == '__main__':
     main()
