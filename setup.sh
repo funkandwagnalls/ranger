@@ -48,6 +48,8 @@ mkdir -p /opt/ranger/results/groups
 mkdir -p /opt/ranger/results/logged_in_users
 mkdir -p /opt/ranger/results/command
 mkdir -p /opt/ranger/results/downloader
+mkdir -p /opt/ranger/results/credentials
+mkdir -p /opt/ranger/results/recovery
 touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
 touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
 touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
