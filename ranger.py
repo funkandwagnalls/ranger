@@ -2,7 +2,7 @@
 '''
 Libraries
 '''
-import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections
+import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections, ast
 import xml.etree.ElementTree as etree
 from threading import Thread, Lock, Event
 from Queue import Queue
@@ -3824,36 +3824,47 @@ def output_handler(logger_obj, output_cat, data, dst, verbose):
 
 def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods):
     if psexec_cmd:
-        for dst in final_targets:
-            psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
     elif wmiexec_cmd:
-        for dst in final_targets:
-            wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
     elif netview_cmd:
-        for dst in final_targets:
-            netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
     elif smbexec_cmd:
-        for dst in final_targets:
-            smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
     elif atexec_cmd:
-        for dst in final_targets:
-            atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
     elif sam_dump:
-        for dst in final_targets:
-            sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
-            time.sleep(sleep_value)
+        sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
     else:
         print(instructions)   
 
-# Hard Kill Control for Processes
-def signal_handler(signum, frame):
-    print("[!] Signal handler called with signal: %s") % (signum)
-    sys.exit(0)
+def matrix_read(creds_matrix):
+    with open(creds_matrix, 'r') as f:
+        s = f.read()
+        creds_dict = ast.literal_eval(s)
+    return(creds_dict)
+    
+def matrix_write(creds_dict):
+    creds_matrix = "/opt/ranger/results/recovery/recovery_matrix"
+    with open(creds_matrix, 'w') as f:
+        f.write(str(creds_dict))
+    return(creds_matrix)
+
+def targets_write(final_targets):
+    updated_targets = "/opt/ranger/results/recovery/recovery_targets"
+    with open(updated_targets, 'w') as f:
+        for tgt in final_targets:
+            f.write(tgt + '\n')
+    return(updated_targets)
+
+def targets_curtail(dst, final_targets):
+    print(dst) #DEBUG
+    try:
+        tgt_index = final_targets.index(dst) + 1
+    except ValueError, e:
+        tgt_index = None
+    final_targets = final_targets[tgt_index:]
+    return(final_targets)
 
 def main():
     # If script is executed at the CLI
@@ -3932,6 +3943,7 @@ Create Pasteable Executor Attack:
     remote_attack.add_argument("-u", "--usr", action="store", dest="usr", default=None, help="The username that will be used to exploit the system")
     remote_attack.add_argument("-p", "--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
     remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, the same hash formats accepted by command line are accepted in the file to include Metasploit PWDUMP, Metasploit hash_dump and smart_hash_dump formats, each line of the file should be formated as one of the following: username password, username hash, username password domain, username hash, Hash_in_PWDUMP_format, Hash_in_PWDUMP_format domain")
+    remote_attack.add_argument("--creds-matrix", action="store", dest="creds_matrix", default=None, help="Load a credential matrix from previous runs or other tools")
     method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Inject the invoker process into the system memory with psexec")
     method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Inject the invoker process into the system memory with wmiexec")
     method.add_argument("--smbexec", action="store_true", dest="smbexec_cmd", help="Inject the invoker process into the system memory with smbexec")
@@ -3976,8 +3988,6 @@ Create Pasteable Executor Attack:
         except Exception, e:
             print("[!] An error occurred when executing the installation script: %s") % (e)
 
-    # Handler for Ctrl+C
-    signal.signal(signal.SIGINT, signal_handler)
 
     # Set Constructors
     verbose = args.verbose             # Verbosity level
@@ -4041,6 +4051,7 @@ Create Pasteable Executor Attack:
     scan_tcp = args.scan_tcp
     scan_syn = args.scan_syn
     creds_file = args.creds_file
+    creds_matrix = args.creds_matrix
     targets_list = []
     exceptions_list = []
     tgt_list = []
@@ -4075,6 +4086,12 @@ Create Pasteable Executor Attack:
     powershell = False
     NTLM_temp = ""
     output_cat = {}
+    matrix_list = []
+    #Credential Matrix
+    #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
+
+    if creds_matrix:
+        creds_dict = matrix_read(creds_matrix)
 
     if invoker or downloader or executor:
         powershell = True
@@ -4090,6 +4107,24 @@ Create Pasteable Executor Attack:
 
     if smbexec_cmd and command != "cmd.exe":
         sys.exit("[!] smbexec is used for semi-interactive shells only at this time, try wmiexec, psexec, or atexec instead to run the command")
+
+    # Hard Kill Control for Processes
+    def signal_handler(signum, frame):
+        print("[!] Signal handler called with signal: %s") % (signum)
+        try:
+            print("[*] Attempting to write data for recovery as necessary!")
+            fn = matrix_write(creds_dict)
+            print("[+] Wrote the saved credential matrix to: %s") % (fn)
+            updated_targets = targets_curtail(dst, final_targets)
+            fn = targets_write(updated_targets)
+            print("[+] Wrote the remaining targets to the following file: %s") % (fn)
+        except Exception, e:
+            print("[!] Failed to write data to files, the following error occured : %s") % (e)
+        finally:
+            sys.exit(0)
+
+    # Handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Configure logger formats for STDERR and output file
     file_handler.setFormatter(format)
@@ -4510,9 +4545,13 @@ Create Pasteable Executor Attack:
                     usr = value[4]
                     pwd = value[5]
                     dom = value[6]
-                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                    for dst in final_targets:
+                        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                        time.sleep(sleep_value)
             else:
-                method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                for dst in final_targets:
+                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                    time.sleep(sleep_value)
         except (Exception, KeyboardInterrupt), e:
             print("[!] An error occurred: %s") % (e)
             if srv:
@@ -4529,9 +4568,13 @@ Create Pasteable Executor Attack:
                     usr = value[4]
                     pwd = value[5]
                     dom = value[6]
-                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                    for dst in final_targets:
+                        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                        time.sleep(sleep_value)
             else: 
-                method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                for dst in final_targets:
+                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods)
+                    time.sleep(sleep_value)
         except (Exception, KeyboardInterrupt), e:
             print("[!] An error occurred: %s") % (e)
 
@@ -4539,4 +4582,3 @@ Create Pasteable Executor Attack:
 
 if __name__ == '__main__':
     main()
-
