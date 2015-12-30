@@ -3735,13 +3735,17 @@ def verify_open(verbose, scan_type, port, dst):
         return(True)
     else:
         return(False)
-
+'''
+CREDENTIAL Functions
+'''
+        
 def pwd_test(pwd, verbose, usr = None):
     SID = None
     NTLM = ""
     LM = ""
     hash = None
     hash_count = []
+    pwdump_format_hash = []
     if pwd and ":" in pwd and pwd.count(':') == 6:
         pwdump_format_hash = pwd.split(':')
         if not usr:
@@ -3749,10 +3753,17 @@ def pwd_test(pwd, verbose, usr = None):
         SID = pwdump_format_hash[1]
         LM = pwdump_format_hash[2]
         NTLM = pwdump_format_hash[3]
+    elif pwd and ":" in pwd and pwd.count(':') == 1:
+        format_hash = pwd.split(':')
+        LM = format_hash[0]
+        if LM == ":" or LM == "" or LM == " ":
+            LM = "aad3b435b51404eeaad3b435b51404ee"
+        NTLM = format_hash[1]
     if LM == ":" or LM == "" or LM == " ":
 	LM = "aad3b435b51404eeaad3b435b51404ee"
         NTLM = pwdump_format_hash[3]
-        SID = pwdump_format_hash[1]
+        if pwdump_format_hash[1]:
+            SID = pwdump_format_hash[1]
         pwd = None
         if not usr:
             usr = pwdump_format_hash[0].lower()
@@ -3774,6 +3785,170 @@ def pwd_test(pwd, verbose, usr = None):
     #print("SID: %s LM: %s NTLM: %s HASH: %s USR: %s PWD: %s") % (SID, LM, NTLM, hash, usr, pwd) #DEBUG
     #print(pwdump_format_hash) #DEBUG
     return(SID, LM, NTLM, hash, usr, pwd)
+
+def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict):
+    temp_list = creds_dict[temp_key]
+    if not temp_list[0]:
+        temp_list[0] = SID_temp
+    if not temp_list[1]:
+        if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
+            LM_temp = "aad3b435b51404eeaad3b435b51404ee"
+            temp_list[1] = LM_temp
+	else:
+	    temp_list[1] = LM_temp
+    if not temp_list[2]:
+        temp_list[2] = NTLM_temp
+    if not temp_list[3]:
+        hash_temp = LM_temp + ":" + NTLM_temp
+        temp_list[3] = hash_temp
+    if not temp_list[4]:
+        temp_list[4] = usr_temp
+    if not temp_list[5]:
+        temp_list[5] = pwd_temp
+    if not temp_list[6]:
+        temp_list[6] = dom_temp
+    if not temp_list[7]:
+ 	temp_list[7] = local_admin_temp
+    if not temp_list[8]:
+ 	temp_list[8] = groups_temp
+    if not temp_list[9]:
+	temp_list[9] = logged_in_temp
+    creds_dict[temp_key] = temp_list
+    return(creds_dict)
+			
+def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict):
+    temp_list = []
+    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
+        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
+    temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
+    creds_dict[temp_key] = temp_list
+    return(creds_dict)
+
+def add_to_creds_dict(verbose, cred, creds_dict, dom):
+    temp_list = []
+    SID_temp = None
+    LM_temp = None
+    NTLM_temp = None
+    hash_temp = None
+    usr_temp = None
+    pwd_temp = None
+    dom_temp = None
+    local_admin_temp = []
+    groups_temp = {}
+    logged_in_temp = []
+    if cred and ":" in cred and cred.count(':') == 6:
+        if cred.count(' ') == 1:
+            cred = cred.rstrip('\n')
+            hash_temp, dom_temp = cred.split(' ')
+            if "WORKGROUP" not in dom or dom_temp == None:
+                dom_temp = dom
+            SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
+            temp_key = "%s\%s" % (dom_temp, usr_temp)
+            if not usr_temp:
+                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            if temp_key in creds_dict:
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	    else:
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+        elif cred.count(' ') == 0:
+	    cred = cred.rstrip('\n')
+	    hash_temp = cred
+	    dom_temp = dom
+	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
+	    temp_key = "%s\%s" % (dom_temp, usr_temp)
+            if not usr_temp:
+                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            if temp_key in creds_dict:
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	    else:
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+    elif cred and ":" in cred and cred.count(':') == 1:
+        if cred.count(' ') == 2:
+	    cred.rstrip('\n')
+	    usr_temp, hash_temp, dom_temp = cred.split(' ')
+	    if "WORKGROUP" not in dom or dom_temp == None:
+	        dom_temp = dom
+	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+	    temp_key = "%s\%s" % (dom_temp, usr_temp)
+	    if not usr_temp:
+                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            if temp_key in creds_dict:
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	    else:
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	elif cred.count(' ') == 1:
+	    if cred.count('\\') == 1:
+	        cred.rstrip('\n')
+		dom_temp, cred_temp = cred.split('\\')
+		usr_temp, hash_temp = cred_temp.split(' ')
+	        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+		temp_key = "%s\%s" % (dom_temp, usr_temp)
+                if "WORKGROUP" not in dom or dom_temp == None:
+                    dom_temp = dom
+	        if not usr_temp:
+                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                if temp_key in creds_dict:
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	        else:
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	    else:
+	        cred.rstrip('\n')
+		usr_temp, hash_temp = cred.split(' ')
+		SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+                if "WORKGROUP" not in dom or dom_temp == None:
+                    dom_temp = dom
+                temp_key = "%s\%s" % (dom_temp, usr_temp)
+		if not usr_temp:
+                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                if temp_key in creds_dict:
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	        else:
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	elif cred.count(' ') == 0:
+	    sys.exit("[!] Credential %s is not correctly formated") % (cred)
+    elif ":" not in cred:
+        if cred.count(' ') == 2:
+	    cred.rstrip('\n')
+	    usr_temp, pwd_temp, dom_temp = cred.split(' ')
+	    if "WORKGROUP" not in dom or dom_temp == None:
+	        dom_temp = dom
+	    temp_key = "%s\%s" % (dom_temp, usr_temp)
+	    if not usr_temp:
+                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            if temp_key in creds_dict:
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	    else:
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+        elif cred.count(' ') == 1:
+            if cred.count('\\') == 1:
+	        cred.rstrip('\n')
+	        dom_temp, cred_temp = cred.split('\\')
+     	        if "WORKGROUP" not in dom or dom_temp == None:
+	            dom_temp = dom
+                usr_temp, pwd_temp = cred_temp.split(' ')
+	        temp_key = "%s\%s" % (dom_temp, usr_temp)
+	        if not usr_temp:
+                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                if temp_key in creds_dict:
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	        else:
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+            else:
+	        cred.rstrip()
+                usr_temp, pwd_temp = cred.split(' ')
+	        dom_temp = dom
+                temp_key = "%s\%s" % (dom_temp, usr_temp)
+	        if not usr_temp:
+                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                if temp_key in creds_dict:
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+	        else:
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+        elif cred.count(' ') == 0:
+	    sys.exit("[!] Credential %s is not correctly formatted") % (cred)
+    else:
+        sys.exit("[!] Credential %s is not correctly formatted") % (cred)
+    return(creds_dict)    
 
 def is_empty(structure):
     if structure:
@@ -4050,7 +4225,7 @@ Create Pasteable Executor Attack:
     remote_attack.add_argument("-d", "--dom", action="store", dest="dom", default="WORKGROUP", help="The domain the user is apart of, defaults to WORKGROUP")
     remote_attack.add_argument("-u", "--usr", action="store", dest="usr", default=None, help="The username that will be used to exploit the system")
     remote_attack.add_argument("-p", "--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
-    remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, the same hash formats accepted by command line are accepted in the file to include Metasploit PWDUMP, Metasploit hash_dump and smart_hash_dump formats, each line of the file should be formated as one of the following: username password, username hash, username password domain, username hash, Hash_in_PWDUMP_format, Hash_in_PWDUMP_format domain")
+    remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, examples include: DOMAIN\\user password, user:1000:aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee:::, user:1000::aad3b435b51404eeaad3b435b51404ee:::, user:1000:NOPASSWORD:aad3b435b51404eeaad3b435b51404ee:::, user aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee, user :aad3b435b51404eeaad3b435b51404ee, user:1000:aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user:1000::aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user:1000:NOPASSWORD:aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee DOMAIN, user :aad3b435b51404eeaad3b435b51404ee DOMAIN")
     remote_attack.add_argument("--creds-matrix", action="store", dest="creds_matrix", default=None, help="Load a credential matrix from previous runs or other tools")
     method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Inject the invoker process into the system memory with psexec")
     method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Inject the invoker process into the system memory with wmiexec")
@@ -4274,126 +4449,10 @@ Create Pasteable Executor Attack:
 
     if creds_file:
         with open(creds_file) as f:
-            creds_list = f.readlines()
+            creds_list = [line.rstrip() for line in f]
         for cred in creds_list:
-            if cred and ":" in cred and cred.count(':') == 6:
-                if cred.count(' ') == 1:
-                    cred = cred.rstrip()
-                    hash_temp, dom_temp = cred.split(' ')
-                    if "WORKGROUP" not in dom:
-                        dom_temp = dom
-                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-                    temp_key = "%s\%s" % (dom_temp, usr_temp)
-                    #print(temp_key) #DEBUG
-                    if not usr_temp:
-                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
-                    if temp_key in creds_dict:
-                        temp_list = creds_dict[temp_key]
-                        temp_list[0] = SID_temp
-                        temp_list[1] = LM_temp
-		    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
-		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
-                        temp_list[2] = NTLM_temp
-                        temp_list[3] = hash_temp    
-                    else:
-                        local_admin_temp=[]
-                        groups_temp={}
-                        logged_in_temp=[]
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
-                elif cred.count(' ') == 0:
-                    hash_temp = cred.rstrip()
-                    dom_temp = dom
-                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-                    temp_key = "%s\%s" % (dom_temp, usr_temp)
-                    if not usr_temp:
-                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
-                    if temp_key in creds_dict:
-                        temp_list = creds_dict[temp_key]
-                        temp_list[0] = SID_temp
-                        temp_list[1] = LM_temp
-                    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
-		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
-                        temp_list[2] = NTLM_temp
-                        temp_list[3] = hash_temp
-                    else:
-                        local_admin_temp=[]
-                        groups_temp={}
-                        logged_in_temp=[]
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
-            elif cred and ":" in cred and cred.count(':') == 1:
-                if cred.count(' ') == 1:
-                    cred = cred.rstrip()
-                    usr_temp, hash_temp = cred.split(' ')
-                    dom_temp = dom
-                    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp, dom_temp)
-                    temp_key = "%s\%s" % (dom_temp, usr_temp)
-                    if not usr_temp:
-                        sys.exit("[!] Hash %s does not have a username") % (hash_temp)
-                    if temp_key in creds_dict:
-                        temp_list = creds_dict[temp_key]
-                        temp_list[0] = SID_temp
-                        temp_list[1] = LM_temp
-                    if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
-		        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
-                        temp_list[2] = NTLM_temp
-                        temp_list[3] = hash_temp
-                    else:
-                        local_admin_temp=[]
-                        groups_temp={}
-                        logged_in_temp=[]
-                        creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
-                elif cred.count(' ') == 2:
-                    cred = cred.rstrip()
-                    usr_temp, pwd_temp, dom_temp = cred.sploit(' ')
-                    temp_key = "%s\%s" % (dom_temp, usr_temp)
-            elif cred.count(' ') == 1:
-                #print(cred) #DEBUG
-                cred = cred.rstrip()
-                dom_temp = dom
-                if "WORKGROUP" not in dom:
-                    dom_temp = dom
-                usr_temp, pwd_temp = cred.split(' ')
-                temp_key = "%s\%s" % (dom_temp, usr_temp)
-                if not usr_temp:
-                    sys.exit("[!] Cred %s does not have a username") % (cred)
-                if temp_key in creds_dict:
-                    temp_list = creds_dict[temp_key]
-                    temp_list[4] = usr_temp
-                    temp_list[5] = pwd_temp
-                    creds_dict[temp_key] = temp_list
-                else:
-                    SID_temp = None
-                    LM_temp = None
-                    NTLM_temp = None
-                    hash_temp = None
-                    local_admin_temp=[]
-                    groups_temp={}
-                    logged_in_temp=[]
-                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
-            elif cred.count(' ') == 2:
-                cred = cred.rstrip()
-                usr_temp, pwd_temp, dom_temp = cred.split(' ')
-                if "WORKGROUP" not in dom:
-                    dom_temp = dom
-                temp_key = "%s\%s" % (dom_temp, usr_temp)
-                if temp_key in creds_dict:
-                    temp_list = creds_dict[temp_key]
-                    temp_list[4] = usr_temp
-                    temp_list[5] = pwd_temp
-                    temp_list[6] = dom_temp
-                    creds_dict[temp_key] = temp_list
-                else:
-                    SID_temp = None
-                    LM_temp = None
-                    NTLM_temp = None
-                    hash_temp = None
-                    local_admin_temp=[]
-                    groups_temp={}
-                    logged_in_temp=[]
-                    creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
-            else:
-                sys.exit("[!] An error occured trying to parse the credential file")
-    
+            creds_dict = add_to_creds_dict(verbose, cred, creds_dict, dom)   
+ 
     #print(creds_dict) #DEBUG
 
     if smbexec_cmd:
@@ -4434,8 +4493,8 @@ Create Pasteable Executor Attack:
         except Exception, e:
             print("[!] No IP address found on interface %s") % (interface)
 	
-	if src_ip == None:
-	    sys.exit("No IP address is assigned to interface %s") % (str(interface))
+    if src_ip == None:
+        sys.exit("No IP address is assigned to interface %s") % (str(interface))
 
     if target_filename:
         with open(target_filename) as f:
@@ -4703,4 +4762,5 @@ Create Pasteable Executor Attack:
 
 if __name__ == '__main__':
     main()
+
 
