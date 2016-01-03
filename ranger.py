@@ -3824,19 +3824,38 @@ def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp
     creds_dict[temp_key] = temp_list
     return(creds_dict)
 
-def add_to_creds_dict(verbose, cred, creds_dict, dom):
+def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = None):
     temp_list = []
     SID_temp = None
     LM_temp = None
     NTLM_temp = None
     hash_temp = None
-    usr_temp = None
-    pwd_temp = None
+    usr_temp = usr
+    pwd_temp = pwd
     dom_temp = None
     local_admin_temp = []
     groups_temp = {}
     logged_in_temp = []
-    if cred and ":" in cred and cred.count(':') == 6:
+    if pwd and ":" in pwd:
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        dom_temp = dom
+        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        if not usr_temp:
+            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+        else:
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+    elif usr and pwd and pwd not in ":":
+        dom_temp = dom
+        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        if not usr_temp:
+            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+        else:
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+    elif cred and ":" in cred and cred.count(':') == 6:
         if cred.count(' ') == 1:
             cred = cred.rstrip('\n')
             hash_temp, dom_temp = cred.split(' ')
@@ -4371,6 +4390,7 @@ Create Pasteable Executor Attack:
     output_cat = {}
     matrix_list = []
     recovery = False
+    cred = None
     #Credential Matrix
     #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
 
@@ -4451,7 +4471,10 @@ Create Pasteable Executor Attack:
         with open(creds_file) as f:
             creds_list = [line.rstrip() for line in f]
         for cred in creds_list:
-            creds_dict = add_to_creds_dict(verbose, cred, creds_dict, dom)   
+            creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred)
+
+    if usr and pwd:
+        creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd) 
  
     #print(creds_dict) #DEBUG
 
@@ -4472,9 +4495,6 @@ Create Pasteable Executor Attack:
         print("[!] This script requires either a command, an invoker attack, or a downloader attack")
         parser.print_help()
         sys.exit(1)
-
-    if pwd and ":" in pwd and not creds_dict:
-        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose, usr)
 
     creds_dict_status = is_empty(creds_dict)
 
