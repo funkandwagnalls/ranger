@@ -3786,7 +3786,7 @@ def pwd_test(pwd, verbose, usr = None):
     #print(pwdump_format_hash) #DEBUG
     return(SID, LM, NTLM, hash, usr, pwd)
 
-def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict):
+def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp):
     temp_list = creds_dict[temp_key]
     if not temp_list[0]:
         temp_list[0] = SID_temp
@@ -3813,14 +3813,18 @@ def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, us
  	temp_list[8] = groups_temp
     if not temp_list[9]:
 	temp_list[9] = logged_in_temp
+    if not temp_list[10]:
+        temp_list[10] = access_to_temp
+    if not temp_list[11]:
+        temp_list[11] = cached_temp
     creds_dict[temp_key] = temp_list
     return(creds_dict)
 			
-def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict):
+def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp):
     temp_list = []
     if LM_temp == ":" or LM_temp == "" or LM_temp == " ":
         LM_temp = "aad3b435b51404eeaad3b435b51404ee"
-    temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp]
+    temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, access_to_temp, cached_temp]
     creds_dict[temp_key] = temp_list
     return(creds_dict)
 
@@ -3836,6 +3840,8 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
     local_admin_temp = []
     groups_temp = {}
     logged_in_temp = []
+    access_to_temp = []
+    cached_temp = None
     if pwd and ":" in pwd:
         SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
         dom_temp = dom
@@ -3843,18 +3849,18 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
-            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
-            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif usr and pwd and pwd not in ":":
         dom_temp = dom
         temp_key = "%s\%s" % (dom_temp, usr_temp)
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
-            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
-            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif cred and ":" in cred and cred.count(':') == 6:
         if cred.count(' ') == 1:
             cred = cred.rstrip('\n')
@@ -3866,9 +3872,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
-                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
-                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         elif cred.count(' ') == 0:
 	    cred = cred.rstrip('\n')
 	    hash_temp = cred
@@ -3878,9 +3884,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
-                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
-                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif cred and ":" in cred and cred.count(':') == 1:
         if cred.count(' ') == 2:
 	    cred.rstrip('\n')
@@ -3892,9 +3898,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
-                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
-                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	elif cred.count(' ') == 1:
 	    if cred.count('\\') == 1:
 	        cred.rstrip('\n')
@@ -3907,9 +3913,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	        if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
-                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
-                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
 	        cred.rstrip('\n')
 		usr_temp, hash_temp = cred.split(' ')
@@ -3920,9 +3926,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 		if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
-                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
-                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	elif cred.count(' ') == 0:
 	    sys.exit("[!] Credential %s is not correctly formated") % (cred)
     elif ":" not in cred:
@@ -3935,9 +3941,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
-                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
-                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         elif cred.count(' ') == 1:
             if cred.count('\\') == 1:
 	        cred.rstrip('\n')
@@ -3949,9 +3955,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	        if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
-                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
-                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
             else:
 	        cred.rstrip()
                 usr_temp, pwd_temp = cred.split(' ')
@@ -3960,9 +3966,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	        if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
-                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
-                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict)
+                    not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         elif cred.count(' ') == 0:
 	    sys.exit("[!] Credential %s is not correctly formatted") % (cred)
     else:
