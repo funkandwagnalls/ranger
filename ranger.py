@@ -3750,6 +3750,8 @@ def pwd_test(pwd, verbose, usr = None):
         pwdump_format_hash = pwd.split(':')
         if not usr:
             usr = pwdump_format_hash[0].lower()
+        else:
+            usr = usr.lower()
         SID = pwdump_format_hash[1]
         LM = pwdump_format_hash[2]
         NTLM = pwdump_format_hash[3]
@@ -3767,6 +3769,8 @@ def pwd_test(pwd, verbose, usr = None):
         pwd = None
         if not usr:
             usr = pwdump_format_hash[0].lower()
+        else:
+            usr = usr.lower()
     if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
         LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
     if pwd and ":" in pwd and pwd.count(':') == 1:
@@ -3829,6 +3833,7 @@ def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp
     return(creds_dict)
 
 def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = None):
+    print(usr) #DEBUG
     temp_list = []
     SID_temp = None
     LM_temp = None
@@ -3842,7 +3847,28 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
     logged_in_temp = []
     access_to_temp = []
     cached_temp = None
-    if pwd and ":" in pwd:
+    if pwd and ":" in pwd and pwd.count(':') != 6:
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        dom_temp = dom
+        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        if not usr_temp:
+            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+        else:
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    elif pwd and ":" in pwd and pwd.count(':') == 6:
+        usr_temp = usr
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        dom_temp = dom
+        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        if not usr_temp:
+            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+        else:
+            not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    elif pwd and ":" in pwd and pwd.count(':') == 1:
         SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
         dom_temp = dom
         temp_key = "%s\%s" % (dom_temp, usr_temp)
@@ -4478,9 +4504,12 @@ Create Pasteable Executor Attack:
             creds_list = [line.rstrip() for line in f]
         for cred in creds_list:
             creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred)
+    elif usr and pwd:
+        creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd)
+    else:
+        creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd)
 
-    if usr and pwd:
-        creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd) 
+     
  
     #print(creds_dict) #DEBUG
 
