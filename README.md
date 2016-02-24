@@ -69,7 +69,7 @@ ranger.py --executor -q -v -vv -vvv
 
 ##Notes About Usage:
 ###Cred File Format:
-*You can pass it a list of usernames and passwords or hashes in the following format in the same file:
+* You can pass it a list of usernames and passwords or hashes in the following format in the same file:
 ```
 username password
 username LM:NTLM
