@@ -105,7 +105,7 @@ username PWDUMP domain
 
 ###Anti-Virus
 * Mimikatz, Downloader and Executor use PowerShell memory injection by calling other services and protocols.
-* The commands are double encoded and bypass current IPS solutions.  
+* The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
 * ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
 
 ###NMAP
