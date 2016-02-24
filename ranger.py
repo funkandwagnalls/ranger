@@ -2884,13 +2884,13 @@ class WmiexecRemoteShell(cmd.Cmd):
         return(self.output)
 
 '''
-Author: Christopher Duffy
+Author: Christopher Duffy, Jonathan Fallone, Dev Patel
 Date: July 2015
 Name: ranger.py
 Purpose: To encode commands that execute PowerShell scripts, also provides a wrapper for
 some of the impacket examples and fixes relevant functionality
 
-Copyright (c) 2015, Christopher Duffy All rights reserved.
+Copyright (c) 2015, Christopher Duffy, Jonathan Fallone, Dev Patel All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met: * Redistributions
