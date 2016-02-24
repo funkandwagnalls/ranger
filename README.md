@@ -94,6 +94,13 @@ username PWDUMP domain
 * If you wish to supply hashes instead of passwords just pass them through the password argument.  
 * If they are PWDUMP format and you supply no username it will pull the username out of the hash.  
 * If you supply a username it will think that the same hash applies to a different user.
+* Use the following formats for password:
+```
+password
+LM:NTLM
+:NTLM
+PWDUMP
+```
 
 ###Targets and Target Lists:
 * You can provide a list of targets either by using a target list or through the target option.  
