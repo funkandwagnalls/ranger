@@ -85,7 +85,7 @@ PWDUMP domain
 username PWDUMP domain
 ```
 
-###Cred File Caveats:
+###Credential File Caveats:
 * If you provide domain names in the file they will be used instead of the default WORKGROUP.  
 * If you supply the domain name by command line (-d), it will infer that you want to ignore all the domain names in the file.
 
