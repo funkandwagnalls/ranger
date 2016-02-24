@@ -69,7 +69,8 @@ ranger.py --executor -q -v -vv -vvv
 ##Notes About Usage:
 ###Cred File Format:
 *You can pass it a list of usernames and passwords or hashes in the following format in the same file:
-```username password
+```
+username password
 username LM:NTLM
 username :NTLM
 username **NO PASSWORD**:NTLM
@@ -80,7 +81,8 @@ username LM:NTLM domain
 username :NTLM  domain
 username **NO PASSWORD**:NTLM domain
 PWDUMP domain
-username PWDUMP domain```
+username PWDUMP domain
+```
 
 ###Cred File Caveats:
 *If you provide domain names in the file they will be used instead of the default WORKGROUP.  
