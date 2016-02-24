@@ -15,5 +15,5 @@ At this time the tool bypasses the majority of IPS vendor solutions unless they 
 tuned to detect it. The tool was developed using our home labs in an effort to support security 
 professionals doing legally and/or contractually supported activities.
 
-More functionality is being added, but at this time the tool uses the community contributions of the 
-PowerShell PowerView, PowerShell Mimikatz and Impacket teams.  Thank you.
+More functionality is being added, but at this time the tool uses the community contributions 
+from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.  
