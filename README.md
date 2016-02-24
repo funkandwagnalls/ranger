@@ -65,3 +65,46 @@ ranger.py --downloader -q -v -vv -vvv
 
 ###Create Pasteable Executor Attack:
 ranger.py --executor -q -v -vv -vvv
+
+##Notes About Usage:
+###Cred File Format:
+You can pass it a list of usernames and passwords or hashes in the following format in the same file:
+
+username password
+username LM:NTLM
+username :NTLM
+username **NO PASSWORD**:NTLM
+PWDUMP
+username PWDUMP domain
+username password domain
+username LM:NTLM domain
+username :NTLM  domain
+username **NO PASSWORD**:NTLM domain
+PWDUMP domain
+username PWDUMP domain
+
+###Cred File Caveats:
+*If you provide domain names in the file they will be used instead of the default WORKGROUP.  
+*If you supply the domain name by command line (-d), it will infer that you want to ignore all the domain names in the file.
+
+###Command Line Execution:
+*If you do not want to use the file you can pass the details through command line directly.
+*If you wish to supply hashes instead of passwords just pass them through the password argument.  
+*If they are PWDUMP format and you supply no username it will pull the username out of the hash.  
+*If you supply a username it will think that the same hash applies to a different user.
+
+###Targets and Target Lists:
+*You can provide a list of targets either by using a target list or through the target option.  
+*You can supply multiple target list files by comma separating them and it will aggregate the data and remove duplicates and then exclude your IP address from the default interface or the interface you provide. 
+*The tool accepts, CIDR notations, small ranges (192.168.195.1-100) or large ranges (192.168.194.1-192.163.1.1) or single IP addresses.  
+*Again just comma separating them by command line or put them in a new line delimited file.
+
+###Exclusions and Exclusion Lists:
+*You can exclude targets using the exclude arguments as well, so if you do not touch a little Class C out of a Class A it will figure that out for you.
+
+###Anti-Virus
+*Mimikatz, Downloader and Executor use PowerShell memory injection by calling other services and protocols.  The commands are double encoded and bypass current IPS solutions.  
+*ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
+
+###NMAP
+*The nmap XML feed is still in DRAFT and it is not functioning yet. 
