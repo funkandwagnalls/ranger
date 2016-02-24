@@ -17,7 +17,7 @@ professionals doing legally and/or contractually supported activities.
 
 More functionality is being added, but at this time the tool uses the community contributions 
 from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.  
-
+##Command Execution:
 ###Find Logged In Users:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] --scout
 
