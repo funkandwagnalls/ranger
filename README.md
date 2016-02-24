@@ -16,7 +16,8 @@ tuned to detect it. The tool was developed using our home labs in an effort to s
 professionals doing legally and/or contractually supported activities.
 
 More functionality is being added, but at this time the tool uses the community contributions 
-from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.  
+from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.
+
 ##Command Execution:
 ###Find Logged In Users:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] --scout
@@ -103,7 +104,7 @@ username PWDUMP domain
 ###Exclusions and Exclusion Lists:
 * You can exclude targets using the exclude arguments as well, so if you do not touch a little Class C out of a Class A it will figure that out for you.
 
-###Anti-Virus
+### Intrusion Protection Systems (IPS)
 * Mimikatz, Downloader and Executor use PowerShell memory injection by calling other services and protocols.
 * The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
 * ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
