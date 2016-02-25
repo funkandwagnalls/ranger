@@ -213,6 +213,7 @@ exploit -j
 
 ###Future Features:
 ####Nmap:
-* The nmap XML feed is still in DRAFT and it is not functioning yet. 
+* The nmap XML feed is still in DRAFT and it is not functioning yet.
+
 ####Credential Parsing:
 * Clean credential parsing is in development to dump to files.
