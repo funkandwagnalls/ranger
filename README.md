@@ -18,36 +18,36 @@ professionals doing legally and/or contractually supported activities.
 More functionality is being added, but at this time the tool uses the community contributions 
 from repositories related to the PowerShell PowerView, PowerShell Mimikatz and Impacket teams.
 
-## Managing Ranger
-### Install
+## Managing Ranger:
+### Install:
 ```
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/setup.sh
 chmod a+x setup.sh
 ./setup.sh
 rm setup.sh
 ```
-### Update
+### Update:
 ```
 ranger --update
 ```
 
-## Usage
+## Usage:
 * Ranger uses a combination of methods and attacks, a method is used to deliver an attack/command
 * An attack is what you are trying to accomplish
 * Some items are both a method and attack rolled into one and some methods cannot use some of the attacks due to current limitations in the libraries or protocols
 
-### Methods & Attacks
+### Methods & Attacks:
 ```
 --scout
 --secrets-dump
 ```
-### Method
+### Method:
 ```
 --wmiexec
 --psexec
 --atexec
 ```
-### Attack
+### Attack:
 ```
 --command
 --invoker
@@ -193,13 +193,13 @@ PWDUMP
 ###Exclusions and Exclusion Lists:
 * You can exclude targets using the exclude arguments as well, so if you do not touch a little Class C out of a Class A it will figure that out for you.
 
-### Intrusion Protection Systems (IPS)
+### Intrusion Protection Systems (IPS):
 * Mimikatz, Downloader and Executor use PowerShell memory injection by calling other services and protocols.
 * The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
 * ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
 
-### Web_delivery attacks
-* To setup Metasploit for the web_delivery exploit start-up Metasploit and configure the exploit to meet the following conditions
+### Web_delivery attacks:
+* To setup Metasploit for the web_delivery exploit start-up Metasploit and configure the exploit to meet the following conditions.
 ```
 use exploit/multi/script/web_delivery
 set targets 2
@@ -211,5 +211,8 @@ set SRVPORT <the same as what is set by the -r option in ranger, defaults to 888
 exploit -j
 ```
 
-###NMAP
+###Future Features:
+####Nmap:
 * The nmap XML feed is still in DRAFT and it is not functioning yet. 
+####Credential Parsing:
+* Clean credential parsing is in development to dump to files.
