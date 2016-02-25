@@ -169,7 +169,7 @@ username PWDUMP domain
 
 ###Credential File Caveats:
 * If you provide domain names in the file they will be used instead of the default WORKGROUP.  
-* If you supply the domain name by command line (-d), it will infer that you want to ignore all the domain names in the file.
+* If you supply the domain name by command line `-d`, it will infer that you want to ignore all the domain names in the file.
 
 ###Command Line Execution:
 * If you do not want to use the file you can pass the details through command line directly.
@@ -217,3 +217,6 @@ exploit -j
 
 ####Credential Parsing:
 * Clean credential parsing is in development to dump to files.
+
+####Colored Output:
+* Add colored output with `https://pypi.python.org/pypi/colorama`
