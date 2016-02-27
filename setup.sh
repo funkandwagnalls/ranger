@@ -73,7 +73,8 @@ tar -zxvf impacket.tar.gz
 rm -rf impacket.tar.gz
 mv impacket-0.9.13 impacket
 rm -rf /opt/ranger/build
-python /opt/ranger/impacket/setup.py install
+cd /opt/ranger/impacket
+python ./setup.py install
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /opt/ranger/impacket/examples/ranger.py && chmod a+x /opt/ranger/impacket/examples/ranger.py
 ln -sfT /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
