@@ -56,8 +56,8 @@ touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
 touch /opt/ranger/smb/im.ps1 && rm /opt/ranger/smb/im.ps1
 chmod 705 /opt/ranger/smb
 chmod 705 /opt/ranger/web
-wget https://raw.githubusercontent.com/PowerShellEmpire/PowerTools/master/PowerView/powerview.ps1 -O /opt/ranger/web/pv.ps1
-wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 -O /opt/ranger/web/im.ps1
+wget https://github.com/PowerShellEmpire/PowerTools/edit/master/PowerView/powerview.ps1 -O /opt/ranger/web/pv.ps1
+wget https://raw.githubusercontent.com/funkandwagnalls/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 -O /opt/ranger/web/im.ps1
 cd /opt/ranger/web
 chmod a+x pv.ps1 im.ps1
 cp -p pv.ps1 im.ps1 /opt/ranger/smb/
