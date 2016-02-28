@@ -39,7 +39,7 @@ apt-get -y install python-setuptools python-dev python-pip
 pip install setuptools --upgrade
 
 # Install Python libraries
-pip install netifaces python-nmap
+pip install netifaces python-nmap colorama
 # Upgrade requests
 pip install request --upgrade
 
