@@ -4441,7 +4441,7 @@ Create Pasteable Executor Attack:
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.43b')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.44b')
 
     args = parser.parse_args()
 
