@@ -210,6 +210,11 @@ set URIPATH /
 set SRVPORT <the same as what is set by the -r option in ranger, defaults to 8888>
 exploit -j
 ```
+##FAQ
+
+* I'm getting access denied errors in Windows machines that are part of a workgroup.
+
+When not part of a domain, Windows by default does not have any administrative shares.  SMBexec relies on shares being enabled.  Additionally, WMIC isn't enabled on workgroup machines.  SMBexec and WMIexec are made to target protocols enabled on domain systems.  While its certainly possible to enable these functions on a workgroup system, note that you are introducing vulnerable protocols (after all, that's what this tool is made to attack).  Enabling these features on your primary home system that your significant other uses for Facebook as well is probably not the best idea.  Make sure this is a test box you own. If you want to determine what shares are exposed and then target them, you can use a tool like enum4linux and then use the --share share_name argument in ranger to try and execute SMBEXEC.
 
 ###Future Features:
 ####Nmap:
