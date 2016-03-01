@@ -215,9 +215,9 @@ exploit -j
 ###Access Deined Errors for SMBEXEC and WMIEXEC
 * I'm getting access denied errors in Windows machines that are part of a WORKGROUP.
 
-** When not part of a domain, Windows by default does not have any administrative shares.  SMBEXEC relies on shares being enabled.  Additionally, WMIC isn't enabled on WORKGROUP machines.  SMBEXEC and WMIEXEC are made to target protocols enabled on domain systems.  While its certainly possible to enable these functions on a WORKGROUP system, note that you are introducing vulnerable protocols (after all, that's what this tool is made to attack).  Enabling these features on your primary home system that your significant other uses for Facebook as well is probably not the best idea.  
-** Make sure this is a test box you own.  You can force the shares to be enabled by following the instructions here: http://www.wintips.org/how-to-enable-admin-shares-windows-7/
-** If you want to determine what shares are exposed and then target them, you can use a tool like `enum4linux` and then use the `--share share_name` argument in ranger to try and execute SMBEXEC.
+..* When not part of a domain, Windows by default does not have any administrative shares.  SMBEXEC relies on shares being enabled.  Additionally, WMIC isn't enabled on WORKGROUP machines.  SMBEXEC and WMIEXEC are made to target protocols enabled on domain systems.  While its certainly possible to enable these functions on a WORKGROUP system, note that you are introducing vulnerable protocols (after all, that's what this tool is made to attack).  Enabling these features on your primary home system that your significant other uses for Facebook as well is probably not the best idea.  
+..* Make sure this is a test box you own.  You can force the shares to be enabled by following the instructions here: http://www.wintips.org/how-to-enable-admin-shares-windows-7/
+..* If you want to determine what shares are exposed and then target them, you can use a tool like `enum4linux` and then use the `--share share_name` argument in ranger to try and execute SMBEXEC.
 
 ##Future Features:
 ###Nmap:
