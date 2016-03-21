@@ -3819,8 +3819,13 @@ def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, us
     if not temp_list[3]:
         if not (LM_temp or NTLM_temp):
             hash_temp = None
-        else:
+        elif NTLM_temp and not LM_temp:
+            LM_temp = "aad3b435b51404eeaad3b435b51404ee"
             hash_temp = LM_temp + ":" + NTLM_temp
+            temp_list[3] = hash_temp
+        elif NTLM_temp and LM_temp:
+            hash_temp = LM_temp + ":" + NTLM_temp
+            temp_list[3] = hash_temp
         temp_list[3] = hash_temp
     if not temp_list[4]:
         temp_list[4] = usr_temp
@@ -4407,13 +4412,15 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
         else:
             continue
         if temp_key in creds_dict:
-            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-            if not creds_dict[temp_key][1] and NTLM_temp:
-                creds_dict[temp_key][1] = "aad3b435b51404eeaad3b435b51404ee"
+	    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            if NTLM_temp and not creds_dict[temp_key][1]:
+	        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
+	    if not creds_dict[temp_key][1] and NTLM_temp:
+                creds_dict[temp_key][1] = LM_temp
             if not creds_dict[temp_key][2] and NTLM_temp:
                 creds_dict[temp_key][2] = NTLM_temp
             if not creds_dict[temp_key][3] and not creds_dict[temp_key][1] and NTLM_temp:
-                creds_dict[temp_key][3] = "aad3b435b51404eeaad3b435b51404ee:" + NTLM_temp
+                creds_dict[temp_key][3] = LM_temp + ":" + NTLM_temp
             if not creds_dict[temp_key][4] and usr_temp:
                 creds_dict[temp_key][4] = usr_temp
             if not creds_dict[temp_key][6] and dom_temp:
@@ -4445,9 +4452,8 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
             if not creds_dict[temp_key][6] and dom_temp:
                 creds_dict[temp_key][6] = dom_temp
         else:
-            print(temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)#DEBUG
+            #print(temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)#DEBUG
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    print(creds_dict) #DEBUG
     return(creds_dict, message_list)
 
 #temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, access_to_temp, cached_temp]
@@ -4477,9 +4483,9 @@ def access_to_writer(creds_dict, recovery, logger_obj):
     map_list = []
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
-        access_to = "/opt/ranger/results/recovery/recovery_access_to"
+        access_to = "/opt/ranger/results/recovery/recovery_access_to_"
     else:
-        access_to = "/opt/ranger/results/credentials/access_to" + st
+        access_to = "/opt/ranger/results/credentials/access_to_" + st
     try:
         for k, v in creds_dict.iteritems():
             if v[10]:
@@ -4559,11 +4565,9 @@ def logged_in_users_method(verbose, creds_dict, dom, dst, data = None, usr = Non
                 dom_temp = "WORKGROUP"
             temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
             message += "[+] %s is logged into %s \n" % (temp_key, ip)
-            print(message) #DEBUG
     else:
         dom_temp = dom.lower()
         ip = dst
-        print(dom_temp, usr_temp) #DEBUG
         temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
         message = "[+] %s is logged into %s \n" % (temp_key, ip)
     if temp_key in creds_dict:
