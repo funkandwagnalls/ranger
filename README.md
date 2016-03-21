@@ -230,4 +230,7 @@ When not part of a domain, Windows by default does not have any administrative s
 * Add colored output with `https://pypi.python.org/pypi/colorama`
 
 # Presented At:
-[BSides 2016] (http://2016.bsidescharm.com/2016-talks)
+[BSides 2016 April 23, 2016] (http://2016.bsidescharm.com/2016-talks)
+
+# Distributions the tool is a part of:
+[Black Arch Linux] (https://blackarch.org/)
