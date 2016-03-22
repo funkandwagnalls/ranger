@@ -39,7 +39,7 @@ apt-get -y install python-setuptools python-dev python-pip
 pip install setuptools --upgrade
 
 # Install Python libraries
-pip install netifaces python-nmap
+pip install netifaces python-nmap colorama
 # Upgrade requests
 pip install request --upgrade
 
@@ -67,13 +67,14 @@ wget https://raw.githubusercontent.com/funkandwagnalls/PowerSploit/master/Exfilt
 cd /opt/ranger/web
 chmod a+x pv.ps1 im.ps1
 cp -p pv.ps1 im.ps1 /opt/ranger/smb/
-wget https://pypi.python.org/packages/source/i/impacket/impacket-0.9.13.tar.gz -O /opt/ranger/impacket.tar.gz
 cd /opt/ranger
-tar -zxvf impacket.tar.gz
-rm -rf impacket.tar.gz
-mv impacket-0.9.13 impacket
-rm -rf /opt/ranger/build
-python /opt/ranger/impacket/setup.py install
+wget https://github.com/CoreSecurity/impacket/archive/master.zip
+cd /opt/ranger
+unzip master.zip
+rm -rf master.zip
+mv impacket-master impacket
+cd /opt/ranger/impacket
+python ./setup.py install
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /opt/ranger/impacket/examples/ranger.py && chmod a+x /opt/ranger/impacket/examples/ranger.py
 ln -sfT /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
