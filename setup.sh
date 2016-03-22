@@ -39,7 +39,7 @@ apt-get -y install python-setuptools python-dev python-pip
 pip install setuptools --upgrade
 
 # Install Python libraries
-pip install netifaces python-nmap colorama
+pip install netifaces python-nmap
 # Upgrade requests
 pip install request --upgrade
 
@@ -68,11 +68,11 @@ cd /opt/ranger/web
 chmod a+x pv.ps1 im.ps1
 cp -p pv.ps1 im.ps1 /opt/ranger/smb/
 cd /opt/ranger
-wget https://github.com/CoreSecurity/impacket/archive/master.zip
-cd /opt/ranger
-unzip master.zip
-rm -rf master.zip
-mv impacket-master impacket
+wget https://pypi.python.org/packages/source/i/impacket/impacket-0.9.13.tar.gz -O /opt/ranger/impacket.tar.gz
+tar -zxvf impacket.tar.gz
+rm -rf impacket.tar.gz
+mv impacket-0.9.13 impacket
+rm -rf /opt/ranger/build
 cd /opt/ranger/impacket
 python ./setup.py install
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
