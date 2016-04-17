@@ -45,17 +45,17 @@ pip install request --upgrade
 
 touch /usr/bin/ranger && rm -f /usr/bin/ranger
 rm -rf /opt/ranger
-mkdir -m 755 -p /opt/ranger/smb
-mkdir -m 755 -p /opt/ranger/web
-mkdir -m 755 -p /opt/ranger/log
-mkdir -m 755 -p /opt/ranger/results/secrets_dump
-mkdir -m 755 -p /opt/ranger/results/invoker
-mkdir -m 755 -p /opt/ranger/results/groups
-mkdir -m 755 -p /opt/ranger/results/logged_in_users
-mkdir -m 755 -p /opt/ranger/results/command
-mkdir -m 755 -p /opt/ranger/results/downloader
-mkdir -m 755 -p /opt/ranger/results/credentials
-mkdir -m 755 -p /opt/ranger/results/recovery
+mkdir -m 777 -p /opt/ranger/smb
+mkdir -m 777 -p /opt/ranger/web
+mkdir -m 777 -p /opt/ranger/log
+mkdir -m 777 -p /opt/ranger/results/secrets_dump
+mkdir -m 777 -p /opt/ranger/results/invoker
+mkdir -m 777 -p /opt/ranger/results/groups
+mkdir -m 777 -p /opt/ranger/results/logged_in_users
+mkdir -m 777 -p /opt/ranger/results/command
+mkdir -m 777 -p /opt/ranger/results/downloader
+mkdir -m 777 -p /opt/ranger/results/credentials
+mkdir -m 777 -p /opt/ranger/results/recovery
 touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
 touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
 touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
