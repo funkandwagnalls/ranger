@@ -39,29 +39,27 @@ apt-get -y install python-setuptools python-dev python-pip
 pip install setuptools --upgrade
 
 # Install Python libraries
-pip install netifaces python-nmap
+pip install netifaces python-nmap colorama
 # Upgrade requests
 pip install request --upgrade
 
 touch /usr/bin/ranger && rm -f /usr/bin/ranger
 rm -rf /opt/ranger
-mkdir -p /opt/ranger/smb
-mkdir -p /opt/ranger/web
-mkdir -p /opt/ranger/log
-mkdir -p /opt/ranger/results/secrets_dump
-mkdir -p /opt/ranger/results/invoker
-mkdir -p /opt/ranger/results/groups
-mkdir -p /opt/ranger/results/logged_in_users
-mkdir -p /opt/ranger/results/command
-mkdir -p /opt/ranger/results/downloader
-mkdir -p /opt/ranger/results/credentials
-mkdir -p /opt/ranger/results/recovery
+mkdir -m 705 -p /opt/ranger/smb
+mkdir -m 705 -p /opt/ranger/web
+mkdir -m 705 -p /opt/ranger/log
+mkdir -m 705 -p /opt/ranger/results/secrets_dump
+mkdir -m 705 -p /opt/ranger/results/invoker
+mkdir -m 705 -p /opt/ranger/results/groups
+mkdir -m 705 -p /opt/ranger/results/logged_in_users
+mkdir -m 705 -p /opt/ranger/results/command
+mkdir -m 705 -p /opt/ranger/results/downloader
+mkdir -m 705 -p /opt/ranger/results/credentials
+mkdir -m 705 -p /opt/ranger/results/recovery
 touch /opt/ranger/web/pv.ps1 && rm /opt/ranger/web/pv.ps1
 touch /opt/ranger/web/im.ps1 && rm /opt/ranger/web/im.ps1
 touch /opt/ranger/smb/pv.ps1 && rm /opt/ranger/smb/pv.ps1
 touch /opt/ranger/smb/im.ps1 && rm /opt/ranger/smb/im.ps1
-chmod 705 /opt/ranger/smb
-chmod 705 /opt/ranger/web
 wget https://raw.githubusercontent.com/funkandwagnalls/PowerTools/master/PowerView/powerview.ps1 -O /opt/ranger/web/pv.ps1
 wget https://raw.githubusercontent.com/funkandwagnalls/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 -O /opt/ranger/web/im.ps1
 cd /opt/ranger/web
@@ -75,6 +73,7 @@ mv impacket-0.9.13 impacket
 rm -rf /opt/ranger/build
 cd /opt/ranger/impacket
 python ./setup.py install
+python /opt/ranger/impacket/setup.py install
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /opt/ranger/impacket/examples/ranger.py && chmod a+x /opt/ranger/impacket/examples/ranger.py
 ln -sfT /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
