@@ -77,4 +77,5 @@ python /opt/ranger/impacket/setup.py install
 touch /opt/ranger/impacket/examples/ranger.py && rm -f /opt/ranger/impacket/examples/ranger.py
 wget https://raw.githubusercontent.com/funkandwagnalls/ranger/master/ranger.py -O /opt/ranger/impacket/examples/ranger.py && chmod a+x /opt/ranger/impacket/examples/ranger.py
 ln -sfT /opt/ranger/impacket/examples/ranger.py /usr/bin/ranger
-chmod -R 705 /opt/ranger
+chmod -R 755 /opt/ranger
+chown -R root:root /opt/ranger
