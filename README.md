@@ -183,16 +183,24 @@ LM:NTLM
 :NTLM
 PWDUMP
 ```
+###Targets and Exclusions:
+* Targets and exclusions can be used at the same time
 
-###Targets and Target Lists:
+####Targets, Target Ranges, Target CIDRs, Target Lists, NMAP XML Targets:
 * You can provide a list of targets either by using a target list or through the target option.  
 * You can supply multiple target list files by comma separating them and it will aggregate the data and remove duplicates and then exclude your IP address from the default interface or the interface you provide. 
 * The tool accepts, CIDR notations, small ranges (192.168.195.1-100) or large ranges (192.168.194.1-192.163.1.1) or single IP addresses.  
 * Again just comma separating them by command line or put them in a new line delimited file.
+* Nmap XMLs can also be used to target systems, this can be comma seperated as well
+* The tool will normalize and remove duplicates before targeting boxes
+* EXAMPLE: `-t 192.168.195.1-100,192.168.195.200-192.168.198.3 -tl list1,list2,lis3 -tnX scan1.xml,scan2.xml`
 
-###Exclusions and Exclusion Lists:
+####Exclusions, Exclusion Ranges, Exclusion CIDRs, Exclusion Lists, Nmap XML Exclusions:
 * You can exclude targets using the exclude arguments as well, so if you do not touch a little Class C out of a Class A it will figure that out for you.
+* Exclusions can be conducted in exactly the same manner as targets, just replace the `t` in the commands with `e`
+* EXAMPLE: `-e 192.168.195.1-100,192.168.195.200-192.168.198.3 -el list1,list2,lis3 -enX scan1.xml,scan2.xml`
 
+ 
 ### Intrusion Protection Systems (IPS):
 * Mimikatz, Downloader and Executor use PowerShell memory injection by calling other services and protocols.
 * The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
@@ -200,20 +208,20 @@ PWDUMP
 
 ## Invoker Attacks:
 * Executes the PowerShell Mimikatz on the target box
-* Defaults the function / cmdlet to Invoke-Mimikatz, which can be changed with -f
-* Defaults the arguements to DumpCreds, which can be changed with -a
-* Invoker requires both the -f and -a option if you want to change the command, to avoid using the -a you can use Executor
-* EXAMPLE: -x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"
+* Defaults the function / cmdlet to Invoke-Mimikatz, which can be changed with `-f`
+* Defaults the arguements to DumpCreds, which can be changed with `-a`
+* Invoker requires both the `-f` and `-a` option if you want to change the command, to avoid using the `-a` you can use Executor
+* EXAMPLE: `-x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"`
 
 ### Executor Attacks:
 * Allows you to run binaries and or PowerShell scripts on target boxes
 * Must be in the current directory the script or binary is located at on your attack box
 * The script or binary will be injected directly into memory
-* Requires the payload (binary or script) to be identified with -x
-* Requires the function / cmdlet / arguements to be defined by -f
+* Requires the payload (binary or script) to be identified with `-x`
+* Requires the function / cmdlet / arguements to be defined by `-f`
 * Optionally you can further define the command with -a if the tool requires it
-* EXAMPLE 1: -x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"
-* EXAMPLE 2: -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds
+* EXAMPLE 1: `-x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"`
+* EXAMPLE 2: `-x "im.ps1" -f "Invoke-Mimikatz -DumpCreds`
 
 ### Downloader (web_delivery) attacks:
 * To setup Metasploit for the web_delivery exploit start-up Metasploit and configure the exploit to meet the following conditions.
@@ -237,14 +245,20 @@ When not part of a domain, Windows by default does not have any administrative s
 * If you want to determine what shares are exposed and then target them, you can use a tool like `enum4linux` and then use the `--share share_name` argument in ranger to try and execute SMBEXEC.
 
 ##Future Features:
-###Nmap:
-* The nmap XML feed is still in DRAFT and it is not functioning yet.
-
-###Credential Parsing:
-* Clean credential parsing is in development to dump to files.
-
 ###Colored Output:
-* Add colored output with `https://pypi.python.org/pypi/colorama`
+* Continue adding colored output with `https://pypi.python.org/pypi/colorama`
+* WINDOWER – Execute PowerShell without hiding the window to avoid certain monitoring systems
+* GATHERER – Automated credential extractor for a domain group
+* HUNTER - Semi-Intelligent Decision (SID) – Identifies an escalation path based on group membership similarities using classification trees
+* Better NTDS and Group Parsing
+* SMB Catapult servers
+
+#Thank You:
+* Microsoft for PowerShell (and in advance for bash in Windows!)
+* To the CoreLabs Impacket Team
+* PowerShellEmpire Team
+* Mattifestation for starting PowerSploit and PowerShellMafia and contributors for continuing to develop it
+* Our friends and the community for the constructive community
 
 # Presented At:
 [BSides Charm City 2016: April 23, 2016] (http://2016.bsidescharm.com/2016-talks)
