@@ -11,7 +11,7 @@ from collections import OrderedDict
 try:
     import colorama
 except:
-    sys.exit("[!] Instal the colorama library: pip install colorama")
+    sys.exit("[!] Install the colorama library: pip install colorama")
 try:
     import netifaces
 except:
