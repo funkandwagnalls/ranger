@@ -4557,7 +4557,7 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
                     keyed = raw_domain + "\\" + raw_username
                     if keyed in wdigest_dict:
                         test_d, test_u, test_p = wdigest_dict[keyed]
-                        if test_p == None and raw_pasword:
+                        if test_p == None and raw_password:
                             wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
                     else:    
                         wdigest_dict[keyed] = [raw_domain, raw_username, raw_password]
