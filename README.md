@@ -198,7 +198,24 @@ PWDUMP
 * The commands are double encoded and bypass current IPS solutions (even next-gen) unless specifically tuned to catch these attacks.  
 * ATEXEC is the only one that currently lands on disk and does not encode, I still have some rewriting to do still.
 
-### Web_delivery attacks:
+## Invoker Attacks:
+* Executes the PowerShell Mimikatz on the target box
+* Defaults the function / cmdlet to Invoke-Mimikatz, which can be changed with -f
+* Defaults the arguements to DumpCreds, which can be changed with -a
+* Invoker requires both the -f and -a option if you want to change the command, to avoid using the -a you can use Executor
+* EXAMPLE: -x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"
+
+### Executor Attacks:
+* Allows you to run binaries and or PowerShell scripts on target boxes
+* Must be in the current directory the script or binary is located at on your attack box
+* The script or binary will be injected directly into memory
+* Requires the payload (binary or script) to be identified with -x
+* Requires the function / cmdlet / arguements to be defined by -f
+* Optionally you can further define the command with -a if the tool requires it
+* EXAMPLE 1: -x "im.ps1" -f "Invoke-Mimikatz" -a "DumpCreds"
+* EXAMPLE 2: -x "im.ps1" -f "Invoke-Mimikatz -DumpCreds
+
+### Downloader (web_delivery) attacks:
 * To setup Metasploit for the web_delivery exploit start-up Metasploit and configure the exploit to meet the following conditions.
 ```
 use exploit/multi/script/web_delivery
