@@ -4442,7 +4442,7 @@ def secrets_dump_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, 
     epic = (colorama.Fore.YELLOW)
     try:
         for line in data:
-            if line and "ASP" not in line:
+            if line and "ASP" not in line and "ROOT#123" not in line:
                 dom_temp = None
                 SID, LM, NTLM, hash, usr, pwd, dom_temp = pwd_test(line, verbose)
                 creds_dict = add_to_creds_dict(logger_obj, verbose, creds_dict, dom, line)
@@ -5026,7 +5026,7 @@ Create Pasteable Executor Attack:
     parser.add_argument("-v", action="count", dest="verbose", default=1, help="Verbosity level, defaults to one, this outputs each command and result")
     parser.add_argument("-q", action="store_const", dest="verbose", const=0, help="Sets the results to be quiet")
     parser.add_argument("--update", action="store_true", dest="update", default=False, help="Updates ranger and the supporting libraries")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.47b')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.70b')
 
     args = parser.parse_args()
 
