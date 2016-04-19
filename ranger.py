@@ -4483,6 +4483,7 @@ def invoker_parser(verbose, creds_dict, data, logger_obj, dst, dom = None, pwd =
     raw_domain = ""
     raw_username = ""
     raw_password = ""
+    raw_NTLM = ""
     item_range = None
     parse_list = []
     mi = 0
