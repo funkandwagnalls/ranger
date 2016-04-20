@@ -261,7 +261,7 @@ When not part of a domain, Windows by default does not have any administrative s
 * Our friends and the community for the constructive community
 
 # Presented At:
-[BSides Charm City 2016: April 23, 2016] (http://2016.bsidescharm.com/2016-talks)
+[BSides Charm City 2016: April 23, 2016] (http://2016.bsidescharm.com/2016-talks/ranger-it-just-takes-one-account-to-take-down-an-enterprise)
 
 # Distributions the tool is a part of:
 [Black Arch Linux] (https://blackarch.org/)
