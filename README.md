@@ -45,6 +45,7 @@ ranger --update
 ```
 --wmiexec
 --psexec
+--smbexec
 --atexec
 ```
 ### Attack:
